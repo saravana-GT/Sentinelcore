@@ -1,0 +1,29 @@
+.sidebar{
+    width:240px;
+    height:140vh;
+    background:#507cdc;
+    color:white;
+    padding:20px;
+    box-sizing:border-box;
+}
+
+.sidebar h2{
+    text-align:center;
+    margin-bottom:40px;
+}
+
+.sidebar ul{
+    list-style:none;
+    padding:0;
+}
+
+.sidebar li{
+    padding:15px;
+    margin-bottom:10px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.sidebar li:hover{
+    background:#2563eb;
+}
