@@ -12,6 +12,7 @@ public class JPAUtil {
             emf = Persistence.createEntityManagerFactory("SentinelCorePU");
         } catch (Throwable ex) {
             System.err.println("Database Factory Initial connection engine configuration failure: " + ex);
+            ex.printStackTrace();
             throw new ExceptionInInitializerError(ex);
         }
     }
