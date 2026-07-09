@@ -54,3 +54,27 @@ body {
 .login-card button:hover {
     background: #1d4ed8;
 }
+
+.error-text {
+    color: #ef4444;
+    font-size: 13px;
+    margin-top: -15px;
+    margin-bottom: 15px;
+    display: block;
+    text-align: left;
+}
+
+.input-error {
+    border-color: #ef4444 !important;
+}
+
+.api-error {
+    background-color: #fef2f2;
+    border: 1px solid #fee2e2;
+    color: #ef4444;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    text-align: center;
+}
