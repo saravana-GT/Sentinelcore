@@ -24,7 +24,8 @@ public class Main {
     private static final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     public static void main(String[] args) throws IOException {
-        HttpServer server = HttpServer.create(new InetSocketAddress(5000), 0);
+        int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "5000"));
+        HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
         
         // Expose API Context Nodes
         server.createContext("/api/auth/register", new RegisterHandler());
@@ -33,8 +34,7 @@ public class Main {
         server.createContext("/api/metrics", new ProtectedMetricsHandler());
 
         server.setExecutor(null); // Defaults configuration to default server pooling thread execution executor
-        System.out.println("SentinelCore Enterprise Backend running successfully on http://localhost:5000");
-        server.start();
+        System.out.println("SentinelCore Backend running on port " + port);        server.start();
     }
 
     private static void sendResponse(HttpExchange exchange, int statusCode, Object responseObj) throws IOException {
