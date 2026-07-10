@@ -13,13 +13,13 @@
         <class>com.example.model.Metric</class>
 
         <properties>
-            <property name="jakarta.persistence.jdbc.driver" value="com.mysql.cj.jdbc.Driver"/>
-            <property name="jakarta.persistence.jdbc.url" value="jdbc:mysql://mysql-163de704-saravana112006-9383.h.aivencloud.com:28592/defaultdb?sslMode=REQUIRED"/>
-            <property name="jakarta.persistence.jdbc.user" value="avnadmin"/>
-            <property name="jakarta.persistence.jdbc.password" value="AVNS_qw5owzj4wd8vPih4Svh"/>
+            <property name="jakarta.persistence.jdbc.driver" value="org.h2.Driver"/>
+            <property name="jakarta.persistence.jdbc.url" value="jdbc:h2:mem:sentinel_db;DB_CLOSE_DELAY=-1;MODE=MySQL"/>
+            <property name="jakarta.persistence.jdbc.user" value="sa"/>
+            <property name="jakarta.persistence.jdbc.password" value=""/>
 
             <!-- Hibernate Auto-Database Generation Structure Config -->
-            <property name="hibernate.dialect" value="org.hibernate.dialect.MySQLDialect"/>
+            <property name="hibernate.dialect" value="org.hibernate.dialect.H2Dialect"/>
             <property name="hibernate.hbm2ddl.auto" value="update"/>
             <property name="hibernate.show_sql" value="false"/>
             <property name="hibernate.format_sql" value="true"/>
