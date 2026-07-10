@@ -10,6 +10,7 @@ function Signup() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("ANALYST"); // Default role
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState("");
   const [apiSuccess, setApiSuccess] = useState("");
@@ -69,6 +70,10 @@ function Signup() {
     validate("password", val);
   };
 
+  const handleRoleChange = (e) => {
+    setRole(e.target.value);
+  };
+
   const handleSignup = async (e) => {
     e.preventDefault();
     setApiError("");
@@ -101,7 +106,7 @@ function Signup() {
           username,
           email,
           password,
-          role: "OPERATOR" // Default role
+          role
         })
       });
 
@@ -109,6 +114,16 @@ function Signup() {
 
       if (response.ok) {
         setApiSuccess("Account created successfully! Redirecting to login...");
+        
+        // Track the registration action in the audit logs
+        const auditLogs = JSON.parse(localStorage.getItem("audit_logs") || "[]");
+        auditLogs.unshift({
+          timestamp: new Date().toLocaleTimeString(),
+          user: username,
+          action: `User registered with role: ${role}`
+        });
+        localStorage.setItem("audit_logs", JSON.stringify(auditLogs));
+
         setTimeout(() => {
           navigate("/");
         }, 2000);
@@ -126,11 +141,10 @@ function Signup() {
     <div className="signup-container">
       <div className="signup-left">
         <h1>🛡 SentinelCore</h1>
-        <h2>Create Your Account</h2>
+        <h2>Intelligent Security Monitoring Platform</h2>
         <p>
-          <b>Join the Intelligent Enterprise Security Monitoring Platform.</b>
+          Gain enterprise-wide visibility across all security operations, incident queues, threat intelligence IOCs, vulnerabilities and compliance status in one unified dashboard.
         </p>
-        <h1>WELCOME</h1>
       </div>
 
       <div className="signup-card">
@@ -140,32 +154,42 @@ function Signup() {
         {apiSuccess && <div className="api-success">{apiSuccess}</div>}
 
         <form onSubmit={handleSignup}>
+          <label>Username</label>
           <input
             type="text"
             value={username}
             onChange={handleUsernameChange}
-            placeholder="Username"
+            placeholder="Enter Username"
             className={errors.username ? "input-error" : ""}
           />
           {errors.username && <span className="error-text">{errors.username}</span>}
 
+          <label>Email Address</label>
           <input
             type="email"
             value={email}
             onChange={handleEmailChange}
-            placeholder="Email Address"
+            placeholder="Enter Email Address"
             className={errors.email ? "input-error" : ""}
           />
           {errors.email && <span className="error-text">{errors.email}</span>}
 
+          <label>Password</label>
           <input
             type="password"
             value={password}
             onChange={handlePasswordChange}
-            placeholder="Password"
+            placeholder="Enter Password"
             className={errors.password ? "input-error" : ""}
           />
           {errors.password && <span className="error-text">{errors.password}</span>}
+
+          <label>Security Access Role</label>
+          <select value={role} onChange={handleRoleChange}>
+            <option value="ADMIN">Security Administrator (ADMIN)</option>
+            <option value="ANALYST">Security Analyst (ANALYST)</option>
+            <option value="VIEWER">Security Visitor (VIEWER - Read Only)</option>
+          </select>
 
           <button type="submit" disabled={isLoading}>
             {isLoading ? "Creating..." : "Create Account"}
@@ -175,7 +199,7 @@ function Signup() {
         <p className="login-link">
           Already have an account?
           <span onClick={() => navigate("/")}>
-            <b>Login</b>
+            Login
           </span>
         </p>
       </div>

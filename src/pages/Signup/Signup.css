@@ -1,154 +1,181 @@
-.signup-container{
-    display: flex;
-    height: 100vh;
-    font-family: Arial, Helvetica, sans-serif;
+.signup-container {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg);
 }
 
-/* Left Section */
-
-.signup-left{
-    flex: 1;
-    background: #f7f9ff;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 70px;
+.signup-left {
+  flex: 1.2;
+  background: var(--bg-alt);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 80px;
+  border-right: 1px solid var(--border);
+  text-align: left;
 }
 
-.signup-left h1{
-    color: #2563eb;
-    font-size: 50px;
-    font-weight: bold;
-    margin-bottom: 20px;
+.signup-left h1 {
+  font-size: 42px;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 15px;
 }
 
-.signup-left h2{
-    color: #2563eb;
-    font-size: 34px;
-    font-weight: bold;
-    margin-bottom: 20px;
+.signup-left h2 {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 20px;
+  line-height: 1.3;
 }
 
-.signup-left p{
-    font-size: 18px;
-    color: #5a5c5f;
-    margin-bottom: 30px;
-    line-height: 1.6;
+.signup-left p {
+  font-size: 16px;
+  color: var(--text-muted);
+  max-width: 480px;
+  line-height: 1.6;
 }
 
-.signup-left ul{
-    list-style: none;
-    padding: 0;
+.signup-card {
+  width: 460px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 50px;
+  box-shadow: var(--shadow-lg);
+  border-left: 1px solid var(--border);
+  text-align: left;
 }
 
-.signup-left li{
-    font-size: 18px;
-    margin: 15px 0;
-    color: white;
+.signup-card h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 30px;
 }
 
-/* Right Card */
-
-.signup-card{
-    width: 450px;
-    background: white;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 60px;
-    box-shadow: -5px 0 20px rgba(0,0,0,.15);
+.signup-card label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  letter-spacing: 0.8px;
 }
 
-.signup-card h2{
-    text-align: center;
-    color: #2563eb;
-    font-size: 32px;
-    margin-bottom: 30px;
+.signup-card input,
+.signup-card select {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  outline: none;
+  transition: var(--transition);
+  margin-bottom: 18px;
 }
 
-.signup-card input{
-    width: 100%;
-    padding: 14px;
-    margin-bottom: 18px;
-    border: 1px solid #d1d5db;
-    border-radius: 10px;
-    font-size: 16px;
-    outline: none;
-    transition: 0.3s;
+.signup-card input:focus,
+.signup-card select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
-.signup-card input:focus{
-    border-color: #2563eb;
-    box-shadow: 0 0 8px rgba(37,99,235,.25);
+.signup-card select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b5d54' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px;
+  cursor: pointer;
 }
 
-.signup-card button{
-    width: 100%;
-    padding: 14px;
-    border: none;
-    border-radius: 10px;
-    background: #2563eb;
-    color: white;
-    font-size: 17px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: 0.3s;
+.signup-card button {
+  width: 100%;
+  padding: 13px;
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  transition: var(--transition);
+  margin-top: 10px;
 }
 
-.signup-card button:hover{
-    background: #1d4ed8;
+.signup-card button:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  transform: translateY(-1px);
 }
 
-.login-link{
-    margin-top: 25px;
-    text-align: center;
-    font-size: 15px;
-    color: #555;
+.login-link {
+  margin-top: 25px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
-.login-link span{
-    color: #2563eb;
-    font-weight: bold;
-    cursor: pointer;
-    margin-left: 5px;
+.login-link span {
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 5px;
 }
 
-.login-link span:hover{
-    text-decoration: underline;
+.login-link span:hover {
+  text-decoration: underline;
 }
 
 .error-text {
-    color: #ef4444;
-    font-size: 13px;
-    margin-top: -12px;
-    margin-bottom: 12px;
-    display: block;
-    text-align: left;
+  color: var(--red);
+  font-size: 12px;
+  margin-top: -14px;
+  margin-bottom: 14px;
+  display: block;
+  font-weight: 500;
 }
 
 .input-error {
-    border-color: #ef4444 !important;
+  border-color: var(--red) !important;
 }
 
 .api-error {
-    background-color: #fef2f2;
-    border: 1px solid #fee2e2;
-    color: #ef4444;
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    font-size: 14px;
-    text-align: center;
+  background-color: var(--red-dim);
+  border: 1px solid var(--red);
+  color: var(--red);
+  padding: 12px;
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  font-size: 13px;
+  text-align: center;
+  font-weight: 500;
 }
 
 .api-success {
-    background-color: #f0fdf4;
-    border: 1px solid #dcfce7;
-    color: #16a34a;
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    font-size: 14px;
-    text-align: center;
+  background-color: var(--green-dim);
+  border: 1px solid var(--green);
+  color: var(--green);
+  padding: 12px;
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  font-size: 13px;
+  text-align: center;
+  font-weight: 500;
+}
+
+@media (max-width: 900px) {
+  .signup-left {
+    display: none;
+  }
+  .signup-card {
+    width: 100%;
+    border-left: none;
+  }
 }
