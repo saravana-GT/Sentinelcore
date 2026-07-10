@@ -28,7 +28,7 @@ public class AlertController implements HttpHandler {
                 Main.dataService.saveAlert(alert);
                 Main.sendResponse(exchange, 201, alert);
             } else {
-                exchange.sendResponseHeaders(405, -1);
+                Main.sendResponse(exchange, 405, Map.of("error", "Method Not Allowed"));
             }
         } catch (Exception e) {
             Main.sendResponse(exchange, 500, Map.of("error", e.getMessage()));

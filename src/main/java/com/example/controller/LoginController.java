@@ -17,7 +17,7 @@ public class LoginController implements HttpHandler {
             return;
         }
         if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-            exchange.sendResponseHeaders(405, -1);
+            Main.sendResponse(exchange, 405, Map.of("error", "Method Not Allowed"));
             return;
         }
         try {
