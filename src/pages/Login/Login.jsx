@@ -2,7 +2,16 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
 
-const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/$/, "");
+let fallbackUrl = "http://localhost:5000";
+if (typeof window !== "undefined" && window.location.hostname.includes("onrender.com")) {
+  const host = window.location.hostname;
+  if (host.includes("-frontend")) {
+    fallbackUrl = "https://" + host.replace("-frontend", "-backend");
+  } else {
+    fallbackUrl = "https://" + host.replace(".onrender.com", "-backend.onrender.com");
+  }
+}
+const API_URL = (import.meta.env.VITE_API_URL || fallbackUrl).replace(/\/$/, "");
 
 function Login() {
   const navigate = useNavigate();

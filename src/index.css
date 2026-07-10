@@ -39,9 +39,9 @@
 
   --radius: 8px;
   --radius-lg: 12px;
-  --shadow: 0 1px 3px rgba(44, 37, 32, 0.1), 0 1px 2px rgba(44, 37, 32, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(44, 37, 32, 0.15), 0 4px 6px -4px rgba(44, 37, 32, 0.1);
-  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow: 0 1px 3px rgba(44, 37, 32, 0.08), 0 1px 2px rgba(44, 37, 32, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(44, 37, 32, 0.12), 0 4px 6px -4px rgba(44, 37, 32, 0.08);
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {
@@ -81,16 +81,67 @@ body {
   flex-direction: column;
 }
 
-/* Animations */
+/* --- PREMIUM MICRO-ANIMATIONS --- */
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(15px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 0 rgba(107, 13, 35, 0.2); }
+  70% { box-shadow: 0 0 0 6px rgba(107, 13, 35, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(107, 13, 35, 0); }
+}
+
+@keyframes pulseGreen {
+  0% { box-shadow: 0 0 0 0 rgba(40, 122, 67, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(40, 122, 67, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(40, 122, 67, 0); }
+}
+
+@keyframes drawLine {
+  from { stroke-dashoffset: 1000; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* Animations Application Classes */
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .pulse {
-  animation: pulse 2s infinite;
+  animation: pulseGlow 2s infinite;
+}
+
+.pulse-green {
+  animation: pulseGreen 2.2s infinite;
+}
+
+/* Self-drawing SVG path */
+.chart-draw-line {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: drawLine 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Hover scales for elements */
+.hover-lift {
+  transition: var(--transition);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.nav-item-animate {
+  transition: var(--transition);
+}
+.nav-item-animate:hover {
+  transform: translateX(4px);
 }

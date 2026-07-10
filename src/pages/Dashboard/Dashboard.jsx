@@ -4,7 +4,16 @@ import Sidebar from "../../components/Sidebar/Sidebar";
 import Header from "../../components/Header/Header";
 import "./Dashboard.css";
 
-const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/$/, "");
+let fallbackUrl = "http://localhost:5000";
+if (typeof window !== "undefined" && window.location.hostname.includes("onrender.com")) {
+  const host = window.location.hostname;
+  if (host.includes("-frontend")) {
+    fallbackUrl = "https://" + host.replace("-frontend", "-backend");
+  } else {
+    fallbackUrl = "https://" + host.replace(".onrender.com", "-backend.onrender.com");
+  }
+}
+const API_URL = (import.meta.env.VITE_API_URL || fallbackUrl).replace(/\/$/, "");
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -468,7 +477,7 @@ function Dashboard() {
                       {/* Area */}
                       <path d="M40,120 L80,110 L120,90 L160,100 L200,70 L240,80 L280,50 L320,60 L360,30 L400,40 L440,20 L480,35 L520,15 L560,25 L560,140 L40,140Z" fill="url(#chartGrad)" />
                       {/* Line */}
-                      <polyline points="40,120 80,110 120,90 160,100 200,70 240,80 280,50 320,60 360,30 400,40 440,20 480,35 520,15 560,25" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      <polyline className="chart-draw-line" points="40,120 80,110 120,90 160,100 200,70 240,80 280,50 320,60 360,30 400,40 440,20 480,35 520,15 560,25" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       
                       <circle cx="280" cy="50" r="4" fill="var(--purple)" stroke="var(--surface)" strokeWidth="2" />
                       <circle cx="440" cy="20" r="4" fill="var(--purple)" stroke="var(--surface)" strokeWidth="2" />
