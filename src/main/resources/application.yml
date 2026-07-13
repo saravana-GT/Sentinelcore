@@ -1,0 +1,12 @@
+spring:
+  profiles:
+    active: dev
+  application:
+    name: sentinelcore-backend
+
+server:
+  port: 5000
+
+jwt:
+  secret: 9a6e87f8f9024f2b1d6e5d8a90123efc89d2c3882711a37c1df03a6b2c8e9f02
+  expiration: 86400000

@@ -410,31 +410,58 @@ function Dashboard() {
                   <div className="stat-label">Active Incidents</div>
                   <div className="stat-value">{incidents.filter(i => i.status !== "Resolved").length}</div>
                   <div className="stat-change up">▲ 3 from yesterday</div>
-                  <div className="stat-icon">🚨</div>
+                  <div className="stat-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                      <line x1="12" y1="9" x2="12" y2="13"/>
+                      <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                  </div>
                 </div>
                 <div className="stat-card amber">
                   <div className="stat-label">Open Alerts</div>
                   <div className="stat-value">{alerts.filter(a => a.status !== "Resolved").length}</div>
                   <div className="stat-change up">▲ 7 from yesterday</div>
-                  <div className="stat-icon">🔔</div>
+                  <div className="stat-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                  </div>
                 </div>
                 <div className="stat-card purple">
                   <div className="stat-label">Risk Score</div>
                   <div className="stat-value">72</div>
                   <div className="stat-change up">▲ 4 pts increase</div>
-                  <div className="stat-icon">📈</div>
+                  <div className="stat-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                      <polyline points="17 6 23 6 23 12"/>
+                    </svg>
+                  </div>
                 </div>
                 <div className="stat-card green">
                   <div className="stat-label">MTTR (Mean Time)</div>
                   <div className="stat-value">4.2<span style={{ fontSize: "14px", color: "var(--text-dim)" }}>h</span></div>
                   <div className="stat-change down">▼ 12% improved</div>
-                  <div className="stat-icon">⏱️</div>
+                  <div className="stat-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                  </div>
                 </div>
                 <div className="stat-card cyan">
                   <div className="stat-label">Monitored Assets</div>
                   <div className="stat-value">{assets.length}</div>
                   <div className="stat-change" style={{ color: "var(--text-dim)" }}>— active monitor</div>
-                  <div className="stat-icon">🖥️</div>
+                  <div className="stat-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                      <line x1="8" y1="21" x2="16" y2="21"/>
+                      <line x1="12" y1="17" x2="12" y2="21"/>
+                    </svg>
+                  </div>
                 </div>
               </div>
 
@@ -518,7 +545,10 @@ function Dashboard() {
                 <div className="panel">
                   <div className="panel-header" style={{ borderBottom: "1px solid var(--border)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <div className="panel-title">🔴 Real-Time Event Stream</div>
+                      <div className="panel-title" style={{ display: "flex", alignItems: "center" }}>
+                        <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "var(--red)", marginRight: "8px" }}></span>
+                        Real-Time Event Stream
+                      </div>
                       <span className="pulse" style={{ fontSize: "10px", color: "var(--red)", fontWeight: "bold" }}>● ACTIVE</span>
                     </div>
                     <button className="btn btn-ghost" style={{ padding: "3px 8px", fontSize: "11px" }} onClick={handleAutoRefreshToggle}>
@@ -874,7 +904,12 @@ function Dashboard() {
                 
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                   <div className="search-box" style={{ flex: 1, minWidth: "280px" }}>
-                    <span>🔍</span>
+                    <span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                      </svg>
+                    </span>
                     <input 
                       type="text" 
                       placeholder="Query messages... (e.g. 'failed login')" 

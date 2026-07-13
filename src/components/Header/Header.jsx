@@ -43,12 +43,20 @@ function Header({ activeTab, onNewIncidentClick, showToast }) {
 
       <div className="topbar-actions">
         <div className="search-box">
-          <span>🔍</span>
+          <span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </span>
           <input type="text" placeholder="Search logs, CVEs, assets..." />
         </div>
 
         <button className="topbar-btn notif-dot" onClick={handleNotificationClick} title="View Notifications">
-          🔔
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign: "middle"}}>
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
         </button>
 
         {role === "VIEWER" ? (
@@ -58,7 +66,13 @@ function Header({ activeTab, onNewIncidentClick, showToast }) {
             style={{ opacity: 0.5, cursor: "not-allowed" }}
             title="Read-Only Viewer Mode"
           >
-            🔒 New Incident (Viewer)
+            <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              New Incident (Viewer)
+            </span>
           </button>
         ) : (
           <button className="topbar-btn" onClick={onNewIncidentClick} style={{ background: "var(--accent)", color: "#fff", border: "1px solid var(--accent)" }}>

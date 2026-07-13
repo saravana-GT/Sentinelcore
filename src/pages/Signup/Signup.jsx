@@ -144,7 +144,12 @@ function Signup() {
   return (
     <div className="signup-container">
       <div className="signup-left">
-        <h1>🛡 SentinelCore</h1>
+        <h1>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign: "middle", marginRight: "10px"}}>
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          SentinelCore
+        </h1>
         <h2>Intelligent Security Monitoring Platform</h2>
         <p>
           Gain enterprise-wide visibility across all security operations, incident queues, threat intelligence IOCs, vulnerabilities and compliance status in one unified dashboard.

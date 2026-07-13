@@ -164,7 +164,12 @@ function Login() {
   return (
     <div className="login-container">
       <div className="login-card">
-        <h1>🛡 SentinelCore</h1>
+        <h1>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign: "middle", marginRight: "10px"}}>
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          SentinelCore
+        </h1>
         <h4>Security Operations Dashboard</h4>
 
         {apiError && <div className="api-error">{apiError}</div>}
