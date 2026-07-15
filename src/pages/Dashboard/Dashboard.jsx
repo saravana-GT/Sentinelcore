@@ -162,6 +162,34 @@ function Dashboard() {
     }
   }, [navigate]);
 
+  // Fetch active threat feeds from backend
+  useEffect(() => {
+    const fetchThreats = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_URL}/api/threats`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const formatted = data.map(item => ({
+            value: item.value,
+            type: item.type,
+            severity: item.severity,
+            date: item.date || "2026-07-15"
+          }));
+          setThreats(formatted);
+        }
+      } catch (err) {
+        console.error("Error fetching threat feeds:", err);
+      }
+    };
+
+    fetchThreats();
+  }, []);
+
   // Live feed stream simulation
   useEffect(() => {
     if (!autoRefresh) return;
