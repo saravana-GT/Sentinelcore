@@ -4,10 +4,7 @@ import Sidebar from "../../components/Sidebar/Sidebar";
 import Header from "../../components/Header/Header";
 import "./Dashboard.css";
 
-let fallbackUrl = "http://localhost:5000";
-if (typeof window !== "undefined" && window.location.hostname.includes("onrender.com")) {
-  fallbackUrl = "https://sentinelcore-9hxu.onrender.com";
-}
+let fallbackUrl = "https://sentinelcore-9hxu.onrender.com";
 const API_URL = (import.meta.env.VITE_API_URL || fallbackUrl).replace(/\/$/, "");
 
 function Dashboard() {
