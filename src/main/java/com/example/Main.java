@@ -26,7 +26,7 @@ public class Main {
         server.createContext("/api/auth/login", new com.example.controller.LoginController());
         server.createContext("/api/alerts", new com.example.controller.AlertController());
         server.createContext("/api/metrics", new com.example.controller.MetricController());
-
+        server.createContext("/api/knowledgebase", new com.example.controller.KnowledgeBaseController());
         server.setExecutor(null); // Defaults configuration to default server pooling thread execution executor
         System.out.println("SentinelCore Enterprise Backend running successfully on port " + port);
         server.start();
@@ -37,7 +37,7 @@ public class Main {
             byte[] responseBytes = objectMapper.writeValueAsBytes(responseObj);
             exchange.getResponseHeaders().set("Content-Type", "application/json");
             exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
-            exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
+            exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, PUT,DELETE ,OPTIONS");
             exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Authorization");
             
             if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {

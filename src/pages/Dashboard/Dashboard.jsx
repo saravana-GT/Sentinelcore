@@ -22,6 +22,138 @@ function Dashboard() {
 
   // Toasts
   const [toasts, setToasts] = useState([]);
+  useEffect(() => {
+  fetch("http://localhost:5000/api/knowledgebase")
+    .then((res) => res.json())
+    .then((data) => {
+      setKnowledgeArticles(data);
+    })
+    .catch((err) => {
+      console.error("Failed to load Knowledge Base:", err);
+    });
+      }, []);
+
+  const [knowledgeArticles, setKnowledgeArticles] = useState([]);
+  const [showAddArticle, setShowAddArticle] = useState(false);
+
+  const [newArticle, setNewArticle] = useState({
+    title: "",
+    category: "",
+    content: "",
+    author: ""
+   });
+   const [editingArticle, setEditingArticle] = useState(null);
+   const [showEditArticle, setShowEditArticle] = useState(false);
+   const [searchTerm, setSearchTerm] = useState("");
+   const [selectedCategory, setSelectedCategory] = useState("All");
+
+
+   const saveArticle = async () => {
+  try {
+    const response = await fetch("http://localhost:5000/api/knowledgebase", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newArticle),
+    });
+
+    if (!response.ok) {
+      alert("Failed to save article.");
+      return;
+    }
+     
+    
+    // Reload articles
+    const updated = await fetch("http://localhost:5000/api/knowledgebase");
+    const data = await updated.json();
+    setKnowledgeArticles(data);
+
+    // Reset form
+    setNewArticle({
+      title: "",
+      category: "",
+      content: "",
+      author: "",
+    });
+
+    setShowAddArticle(false);
+
+    alert("Article added successfully!");
+  } catch (err) {
+    console.error(err);
+    alert("Unable to connect to backend.");
+  }
+};
+
+const deleteArticle = async (id) => {
+  console.log("Delete clicked:", id);
+
+  if (!window.confirm("Delete this article?")) return;
+
+  try {
+    const response = await fetch(
+      `http://localhost:5000/api/knowledgebase/${id}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    if (!response.ok) {
+      alert("Delete failed");
+      return;
+    }
+
+    setKnowledgeArticles((prev) =>
+      prev.filter((article) => article.id !== id)
+    );
+
+    alert("Article deleted successfully.");
+  } catch (err) {
+    console.error(err);
+    alert("Unable to connect to backend.");
+  }
+};
+
+const editArticle = (article) => {
+  setEditingArticle({
+    ...article,
+  });
+
+  setShowEditArticle(true);
+};
+const updateArticle = async () => {
+  try {
+    const response = await fetch(
+      `http://localhost:5000/api/knowledgebase/${editingArticle.id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editingArticle),
+      }
+    );
+
+    if (!response.ok) {
+      alert("Failed to update article.");
+      return;
+    }
+
+    const res = await fetch("http://localhost:5000/api/knowledgebase");
+    const data = await res.json();
+
+    setKnowledgeArticles(data);
+
+    setShowEditArticle(false);
+    setEditingArticle(null);
+
+    alert("Article updated successfully.");
+  } catch (err) {
+    console.error(err);
+    alert("Unable to connect to backend.");
+  }
+};
 
   // Modals
   const [modalType, setModalType] = useState(null); // 'createIncident' | 'addAsset' | 'addUser' | 'createRule' | null
@@ -1054,33 +1186,342 @@ function Dashboard() {
             </div>
           )}
 
-          {/* ===== 12. KNOWLEDGE BASE VIEW ===== */}
-          {activeTab === "knowledge" && (
-            <div>
-              <div style={{ textAlign: "left", marginBottom: "20px" }}>
-                <h2 style={{ fontSize: "20px", color: "var(--heading)", fontWeight: "800" }}>Security Runbooks</h2>
-                <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>Guides and post-incident reviews (PIR)</p>
-              </div>
+         {/* ===== 12. KNOWLEDGE BASE VIEW ===== */}
+{activeTab === "knowledge" && (
+  <>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "20px",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          alignItems: "center",
+        }}
+      >
+        <input
+          type="text"
+          placeholder="🔍 Search articles..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            width: "250px",
+            padding: "10px",
+            borderRadius: "8px",
+            border: "1px solid #ccc",
+          }}
+        />
 
-              <div className="ioc-grid" style={{ textAlign: "left" }}>
-                <div className="ioc-card" style={{ cursor: "pointer" }} onClick={() => showToast("info", "Loading PIR-2026-04 runbook documentation...")}>
-                  <div className="ioc-value">PIR-2026-04: Ransomware response</div>
-                  <div className="ioc-type">Runbook Guide</div>
-                  <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "6px" }}>
-                    Triage playbook guidelines for database encryption events.
-                  </p>
-                </div>
-                <div className="ioc-card" style={{ cursor: "pointer" }} onClick={() => showToast("info", "Loading MFA guidelines...")}>
-                  <div className="ioc-value">MFA enrollment guide</div>
-                  <div className="ioc-type">IT Operations</div>
-                  <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "6px" }}>
-                    Setup policies for Active Directory MFA integrations.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          style={{
+            padding: "10px",
+            borderRadius: "8px",
+          }}
+        >
+          <option value="All">All Categories</option>
+          <option value="Email Security">Email Security</option>
+          <option value="Web Security">Web Security</option>
+          <option value="Malware">Malware</option>
+          <option value="Network Security">Network Security</option>
+          <option value="Cloud Security">Cloud Security</option>
+        </select>
+      </div>
 
+      <button
+  onClick={() => setShowAddArticle(true)}
+  style={{
+    background: "#7B3F00",
+    color: "#fff",
+    border: "none",
+    padding: "10px 22px",
+    borderRadius: "8px",
+    fontWeight: "600",
+    cursor: "pointer",
+    transition: "0.3s",
+  }}
+>
+  ➕ Add Article
+</button>
+    </div>
+
+    <div className="kb-grid">
+      {knowledgeArticles.length === 0 ? (
+        <p>No Knowledge Base articles found.</p>
+      ) : (
+        knowledgeArticles
+          .filter((article) => {
+            const matchesSearch =
+              article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              article.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              article.author.toLowerCase().includes(searchTerm.toLowerCase());
+
+            const matchesCategory =
+              selectedCategory === "All" ||
+              article.category === selectedCategory;
+
+            return matchesSearch && matchesCategory;
+          })
+          .map((article) => (
+            <div className="kb-card" key={article.id}>
+
+    <h3> {article.title}</h3>
+
+    <div className="kb-label">Category</div>
+    <div className="kb-value">{article.category}</div>
+
+    <div className="kb-label">Content</div>
+    <div className="kb-content">
+        {article.content}
+    </div>
+
+    <div className="kb-footer">
+        <span><b>Author:</b> {article.author}</span>
+        <span>{article.createdAt}</span>
+    </div>
+
+    <hr className="kb-divider"/>
+
+    <div className="kb-actions">
+
+        <button
+  onClick={() => editArticle(article)}
+  style={{
+    background: "#7B3F00",
+    color: "white",
+    border: "none",
+    padding: "10px 18px",
+    borderRadius: "8px",
+    fontWeight: "600",
+    cursor: "pointer",
+  }}
+>
+    ✏ Edit
+</button>
+
+        <button
+  onClick={() => deleteArticle(article.id)}
+  style={{
+    background: "#7B3F00",
+    color: "white",
+    border: "none",
+    padding: "10px 18px",
+    borderRadius: "8px",
+    fontWeight: "600",
+    cursor: "pointer",
+  }}
+>
+   🗑 Delete
+</button>
+    </div>
+
+</div>
+          ))
+      )}
+    </div>
+  </>
+)}
+
+{/* ===== ADD ARTICLE POPUP ===== */}
+{showAddArticle && (
+  <div
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      background: "rgba(0,0,0,0.5)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 1000,
+    }}
+  >
+    <div
+      style={{
+        background: "#fff",
+        padding: "25px",
+        borderRadius: "10px",
+        width: "500px",
+      }}
+    >
+      <h2>Add Knowledge Base Article</h2>
+
+      <input
+        type="text"
+        placeholder="Title"
+        value={newArticle.title}
+        onChange={(e) =>
+          setNewArticle({ ...newArticle, title: e.target.value })
+        }
+        style={{ width: "100%", marginBottom: "10px", padding: "10px" }}
+      />
+
+      <input
+        type="text"
+        placeholder="Category"
+        value={newArticle.category}
+        onChange={(e) =>
+          setNewArticle({ ...newArticle, category: e.target.value })
+        }
+        style={{ width: "100%", marginBottom: "10px", padding: "10px" }}
+      />
+
+      <textarea
+        rows="5"
+        placeholder="Content"
+        value={newArticle.content}
+        onChange={(e) =>
+          setNewArticle({ ...newArticle, content: e.target.value })
+        }
+        style={{ width: "100%", marginBottom: "10px", padding: "10px" }}
+      />
+
+      <input
+        type="text"
+        placeholder="Author"
+        value={newArticle.author}
+        onChange={(e) =>
+          setNewArticle({ ...newArticle, author: e.target.value })
+        }
+        style={{ width: "100%", marginBottom: "15px", padding: "10px" }}
+      />
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          gap: "10px",
+        }}
+      >
+        <button
+          onClick={() => setShowAddArticle(false)}
+          style={{
+            padding: "10px 18px",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+          }}
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={saveArticle}
+          style={{
+            padding: "10px 18px",
+            background: "#2563eb",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            fontWeight: "bold",
+            cursor: "pointer",
+          }}
+        >
+          💾 Save Article
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{showEditArticle && editingArticle && (
+  <div
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      background: "rgba(0,0,0,0.5)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 1000,
+    }}
+  >
+    <div
+      style={{
+        background: "#fff",
+        padding: "25px",
+        borderRadius: "10px",
+        width: "500px",
+      }}
+    >
+      <h2>Edit Knowledge Base Article</h2>
+
+      <input
+        type="text"
+        value={editingArticle.title}
+        onChange={(e) =>
+          setEditingArticle({
+            ...editingArticle,
+            title: e.target.value,
+          })
+        }
+        style={{ width: "100%", marginBottom: "10px", padding: "10px" }}
+      />
+
+      <input
+        type="text"
+        value={editingArticle.category}
+        onChange={(e) =>
+          setEditingArticle({
+            ...editingArticle,
+            category: e.target.value,
+          })
+        }
+        style={{ width: "100%", marginBottom: "10px", padding: "10px" }}
+      />
+
+      <textarea
+        rows="5"
+        value={editingArticle.content}
+        onChange={(e) =>
+          setEditingArticle({
+            ...editingArticle,
+            content: e.target.value,
+          })
+        }
+        style={{ width: "100%", marginBottom: "10px", padding: "10px" }}
+      />
+
+      <input
+        type="text"
+        value={editingArticle.author}
+        onChange={(e) =>
+          setEditingArticle({
+            ...editingArticle,
+            author: e.target.value,
+          })
+        }
+        style={{ width: "100%", marginBottom: "15px", padding: "10px" }}
+      />
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          gap: "10px",
+        }}
+      >
+        <button onClick={() => setShowEditArticle(false)}>
+          Cancel
+        </button>
+
+        <button onClick={updateArticle}>
+          Update
+        </button>
+      </div>
+    </div>
+  </div>
+)}
           {/* ===== 13. USERS & TEAMS VIEW (ADMIN ONLY) ===== */}
           {activeTab === "users" && role === "ADMIN" && (
             <div>

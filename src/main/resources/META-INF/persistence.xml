@@ -11,6 +11,7 @@
         <class>com.example.model.User</class>
         <class>com.example.model.Alert</class>
         <class>com.example.model.Metric</class>
+        <class>com.example.model.KnowledgeBase</class>
 
         <properties>
             <property name="jakarta.persistence.jdbc.driver" value="org.h2.Driver"/>
