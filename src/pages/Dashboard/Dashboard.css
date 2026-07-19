@@ -553,6 +553,14 @@
   box-shadow: var(--shadow-lg);
 }
 
+.heat-cell.selected {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+  transform: scale(1.15) !important;
+  z-index: 9;
+  box-shadow: var(--shadow-lg);
+}
+
 /* COMPLIANCE */
 .compliance-framework {
   background: var(--surface);

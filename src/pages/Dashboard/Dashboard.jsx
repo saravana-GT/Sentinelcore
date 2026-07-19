@@ -7,6 +7,17 @@ import "./Dashboard.css";
 let fallbackUrl = "https://sentinelcore-9hxu.onrender.com";
 const API_URL = (import.meta.env.VITE_API_URL || fallbackUrl).replace(/\/$/, "");
 
+const CVE_DETAILS = {
+  "CVE-2026-01": { host: "PROD-DB-01", desc: "Remote Code Execution in Database Parser Engine" },
+  "CVE-2025-44": { host: "CORP-DC-01", desc: "Privilege Escalation bypass in Active Directory" },
+  "CVE-2025-18": { host: "STG-WEB-02", desc: "Cross Site Scripting in landing page form fields" },
+  "CVE-2026-11": { host: "CORP-DC-01", desc: "SSL/TLS Weak Cipher Suites enabled" },
+  "CVE-2024-90": { host: "PROD-APP-01", desc: "Deserialization of Untrusted Data in session management" },
+  "CVE-2026-03": { host: "DMZ-WAF-01", desc: "Remote Command Execution in WAF admin dashboard" },
+  "CVE-2025-05": { host: "STG-WEB-02", desc: "Server Version disclosure in HTTP response header" },
+  "CVE-2026-12": { host: "PROD-APP-01", desc: "Improper access control on metrics endpoints" }
+};
+
 function Dashboard() {
   const navigate = useNavigate();
 
@@ -94,6 +105,7 @@ function Dashboard() {
 
   // Vulnerability scan simulation states
   const [isScanning, setIsScanning] = useState(false);
+  const [selectedCVE, setSelectedCVE] = useState(null);
   const [heatmapCells, setHeatmapCells] = useState([
     { id: 1, score: 9.8, class: "critical", label: "CVE-2026-01" },
     { id: 2, score: 8.5, class: "high", label: "CVE-2025-44" },
@@ -376,6 +388,346 @@ function Dashboard() {
       addAuditLog("Executed network vulnerability scan against 89 monitored assets.");
       showToast("success", "Vulnerability scan completed. 8 active nodes updated.");
     }, 2000);
+  };
+
+  const exportIncidentsCSV = () => {
+    try {
+      showToast("info", "Generating CSV export...");
+      
+      const headers = ["Incident ID", "Title", "Severity", "Status", "Assignee", "SLA", "Created Time"];
+      const rows = incidents.map(inc => [
+        inc.id,
+        `"${inc.title.replace(/"/g, '""')}"`,
+        inc.severity,
+        inc.status,
+        inc.assignee,
+        inc.sla,
+        inc.created
+      ]);
+      
+      const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `sentinelcore_incident_logs_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      addAuditLog("Exported security incident logs as CSV file.");
+      showToast("success", "Incident logs CSV downloaded successfully.");
+    } catch (err) {
+      console.error("CSV Export failed:", err);
+      showToast("warning", "Failed to generate CSV export.");
+    }
+  };
+
+  const downloadSOC2PDF = () => {
+    try {
+      showToast("info", "Preparing SOC2 Posture Audit PDF...");
+      
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        showToast("warning", "Popup blocked! Please allow popups to view and download the PDF report.");
+        return;
+      }
+      
+      const dateStr = new Date().toLocaleString();
+      
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>SOC2 Type II Compliance Report - SentinelCore</title>
+            <style>
+              @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@300;400;600;700;800&display=swap');
+              
+              :root {
+                --bg: #f7f4eb;
+                --text: #2c2520;
+                --text-muted: #6b5d54;
+                --accent: #6b0d23;
+                --green: #287a43;
+                --red: #b91c1c;
+                --border: #e6dfd3;
+              }
+              
+              body {
+                font-family: 'Inter', system-ui, sans-serif;
+                background-color: #ffffff;
+                color: var(--text);
+                padding: 40px;
+                line-height: 1.6;
+              }
+              
+              .header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 2px solid var(--accent);
+                padding-bottom: 20px;
+                margin-bottom: 30px;
+              }
+              
+              .logo {
+                font-size: 24px;
+                font-weight: 800;
+                color: var(--accent);
+                letter-spacing: -0.5px;
+              }
+              
+              .report-title {
+                text-align: right;
+              }
+              
+              .report-title h1 {
+                font-size: 20px;
+                margin: 0;
+                color: var(--text);
+              }
+              
+              .report-title p {
+                font-size: 12px;
+                color: var(--text-muted);
+                margin: 5px 0 0 0;
+                font-family: 'IBM Plex Mono', monospace;
+              }
+              
+              .meta-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 20px;
+                margin-bottom: 30px;
+              }
+              
+              .meta-card {
+                border: 1px solid var(--border);
+                background-color: var(--bg);
+                padding: 15px;
+                border-radius: 6px;
+              }
+              
+              .meta-label {
+                font-size: 10px;
+                font-family: 'IBM Plex Mono', monospace;
+                text-transform: uppercase;
+                color: var(--text-muted);
+                margin-bottom: 5px;
+              }
+              
+              .meta-value {
+                font-size: 16px;
+                font-weight: 700;
+              }
+              
+              .score-banner {
+                background: linear-gradient(135deg, var(--accent) 0%, #470614 100%);
+                color: white;
+                padding: 25px;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 40px;
+              }
+              
+              .score-text h2 {
+                margin: 0 0 5px 0;
+                font-size: 22px;
+                font-weight: 700;
+              }
+              
+              .score-text p {
+                margin: 0;
+                font-size: 13px;
+                opacity: 0.8;
+              }
+              
+              .score-value {
+                font-size: 48px;
+                font-weight: 800;
+                font-family: 'IBM Plex Mono', monospace;
+                border: 4px solid rgba(255, 255, 255, 0.2);
+                border-radius: 50%;
+                width: 100px;
+                height: 100px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              }
+              
+              .section-heading {
+                font-size: 16px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                border-bottom: 1px solid var(--border);
+                padding-bottom: 8px;
+                margin-bottom: 15px;
+                color: var(--accent);
+              }
+              
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 40px;
+              }
+              
+              th {
+                text-align: left;
+                padding: 10px;
+                font-size: 11px;
+                font-family: 'IBM Plex Mono', monospace;
+                text-transform: uppercase;
+                border-bottom: 1px solid var(--text);
+                color: var(--text-muted);
+              }
+              
+              td {
+                padding: 12px 10px;
+                border-bottom: 1px solid var(--border);
+                font-size: 13px;
+              }
+              
+              .badge {
+                display: inline-block;
+                padding: 3px 8px;
+                font-size: 11px;
+                font-weight: 600;
+                border-radius: 4px;
+                text-transform: uppercase;
+              }
+              
+              .badge-passed {
+                background-color: rgba(40, 122, 67, 0.1);
+                color: var(--green);
+                border: 1px solid var(--green);
+              }
+              
+              .badge-failed {
+                background-color: rgba(185, 28, 28, 0.1);
+                color: var(--red);
+                border: 1px solid var(--red);
+              }
+              
+              .footer {
+                margin-top: 60px;
+                border-top: 1px solid var(--border);
+                padding-top: 15px;
+                display: flex;
+                justify-content: space-between;
+                font-size: 11px;
+                color: var(--text-muted);
+                font-family: 'IBM Plex Mono', monospace;
+              }
+              
+              @media print {
+                body {
+                  padding: 0;
+                }
+                .no-print {
+                  display: none;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="logo">SentinelCore</div>
+              <div class="report-title">
+                <h1>Compliance Posture Report</h1>
+                <p>SOC-2-TYPE-II-AUDIT</p>
+              </div>
+            </div>
+            
+            <div class="meta-grid">
+              <div class="meta-card">
+                <div class="meta-label">Generated On</div>
+                <div class="meta-value">${dateStr}</div>
+              </div>
+              <div class="meta-card">
+                <div class="meta-label">Assessed Scope</div>
+                <div class="meta-value">Enterprise SOC Infrastructure</div>
+              </div>
+              <div class="meta-card">
+                <div class="meta-label">Audit Version</div>
+                <div class="meta-value">v1.0.0-Beta (Active)</div>
+              </div>
+            </div>
+            
+            <div class="score-banner">
+              <div class="score-text">
+                <h2>SOC 2 Type II Posture</h2>
+                <p>Calculated compliance level based on 3 main access control and encryption policy criteria.</p>
+              </div>
+              <div class="score-value">82%</div>
+            </div>
+            
+            <div class="section-heading">Assessed Security Control Frameworks</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Control ID</th>
+                  <th>Control Domain</th>
+                  <th>Description</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><b>CC6.1</b></td>
+                  <td>Logical Access Controls</td>
+                  <td>User access rights to systems are authorized, modified, and revoked appropriately.</td>
+                  <td><span class="badge badge-passed">PASSED</span></td>
+                </tr>
+                <tr>
+                  <td><b>CC6.3</b></td>
+                  <td>Data Transmission Encryption</td>
+                  <td>Infrastructure encryption keys and data in transit are managed securely.</td>
+                  <td><span class="badge badge-passed">PASSED</span></td>
+                </tr>
+                <tr>
+                  <td><b>CC6.5</b></td>
+                  <td>Multi-Factor Authentication</td>
+                  <td>Two-Factor/Multi-Factor authentication is required for all administrative access.</td>
+                  <td><span class="badge badge-failed">FAILED</span></td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <div class="section-heading">Compliance Notes & Recommendations</div>
+            <p style="font-size: 13px; margin-bottom: 10px;">
+              <strong>Finding for CC6.5:</strong> The organizational policy for MFA enforcement is currently disabled in the main tenant settings. In order to achieve full 100% compliance alignment, the Security Operations Administrator must enable the simulated Multi-Factor Authentication policy.
+            </p>
+            <p style="font-size: 13px;">
+              All other logical access controls (CC6.1) and encryption key parameters (CC6.3) were evaluated as fully compliant.
+            </p>
+            
+            <div class="footer">
+              <div>SentinelCore Compliance Monitor &copy; 2026</div>
+              <div>CONFIDENTIAL - FOR INTERNAL AUDIT PURPOSES ONLY</div>
+            </div>
+            
+            <script>
+              window.onload = function() {
+                setTimeout(function() {
+                  window.print();
+                }, 500);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      
+      addAuditLog("Generated SOC2 compliance report PDF print sheet.");
+      showToast("success", "SOC2 report PDF print sheet opened successfully.");
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      showToast("warning", "Failed to generate SOC2 PDF report.");
+    }
   };
 
   // Session terminations
@@ -803,21 +1155,35 @@ function Dashboard() {
                 </div>
                 <div className="panel-body">
                   <div className="vuln-heatmap">
-                    {heatmapCells.map((cell) => (
-                      <div 
-                        className={`heat-cell ${cell.class}`} 
-                        key={cell.id}
-                        onClick={() => showToast("info", `${cell.label} CVSS Vulnerability Rating is: ${cell.score}`)}
-                        title={`${cell.label}: CVSS ${cell.score}`}
-                        style={{
-                          background: cell.class === "critical" ? "var(--red-dim)" : cell.class === "high" ? "var(--amber-dim)" : "var(--purple-dim)",
-                          color: cell.class === "critical" ? "var(--red)" : cell.class === "high" ? "var(--amber)" : "var(--purple)",
-                          border: `1px solid ${cell.class === "critical" ? "var(--red)" : cell.class === "high" ? "var(--amber)" : "var(--purple)"}`
-                        }}
-                      >
-                        {cell.score}
-                      </div>
-                    ))}
+                    {heatmapCells.map((cell) => {
+                      const isSelected = selectedCVE === cell.label;
+                      return (
+                        <div 
+                          className={`heat-cell ${cell.class} ${isSelected ? "selected" : ""}`} 
+                          key={cell.id}
+                          onClick={() => {
+                            if (selectedCVE === cell.label) {
+                              setSelectedCVE(null);
+                            } else {
+                              setSelectedCVE(cell.label);
+                              showToast("info", `Filtering table for ${cell.label}`);
+                            }
+                          }}
+                          title={`${cell.label}: CVSS ${cell.score}`}
+                          style={{
+                            background: cell.class === "critical" ? "var(--red-dim)" : cell.class === "high" ? "var(--amber-dim)" : "var(--purple-dim)",
+                            color: cell.class === "critical" ? "var(--red)" : cell.class === "high" ? "var(--amber)" : "var(--purple)",
+                            border: isSelected 
+                              ? `2px solid var(--text)`
+                              : `1px solid ${cell.class === "critical" ? "var(--red)" : cell.class === "high" ? "var(--amber)" : "var(--purple)"}`,
+                            transform: isSelected ? "scale(1.15)" : "none",
+                            boxShadow: isSelected ? "var(--shadow-lg)" : "none"
+                          }}
+                        >
+                          {cell.score}
+                        </div>
+                      );
+                    })}
                   </div>
                   <p style={{ fontSize: "11px", color: "var(--text-dim)" }}>
                     * Click on any CVSS cell block to display catalog references.
@@ -827,6 +1193,22 @@ function Dashboard() {
 
               <div className="panel">
                 <div className="table-container">
+                  {selectedCVE && (
+                    <div style={{
+                      background: "var(--bg-alt)",
+                      borderBottom: "1px solid var(--border)",
+                      padding: "10px 16px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      fontSize: "12px"
+                    }}>
+                      <span>Showing catalog reference for <b>{selectedCVE}</b></span>
+                      <button className="btn btn-ghost" style={{ padding: "2px 8px", fontSize: "11px" }} onClick={() => setSelectedCVE(null)}>
+                        Clear Filter
+                      </button>
+                    </div>
+                  )}
                   <table className="data-table">
                     <thead>
                       <tr>
@@ -838,27 +1220,24 @@ function Dashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td><b>CVE-2026-01</b></td>
-                        <td style={{ fontFamily: "IBM Plex Mono", fontWeight: "bold" }}>9.8</td>
-                        <td><span className="badge badge-critical">CRITICAL</span></td>
-                        <td>PROD-DB-01</td>
-                        <td>Remote Code Execution in Database Parser Engine</td>
-                      </tr>
-                      <tr>
-                        <td><b>CVE-2025-44</b></td>
-                        <td style={{ fontFamily: "IBM Plex Mono", fontWeight: "bold" }}>8.5</td>
-                        <td><span className="badge badge-high">HIGH</span></td>
-                        <td>CORP-DC-01</td>
-                        <td>Privilege Escalation bypass in Active Directory</td>
-                      </tr>
-                      <tr>
-                        <td><b>CVE-2025-18</b></td>
-                        <td style={{ fontFamily: "IBM Plex Mono", fontWeight: "bold" }}>5.4</td>
-                        <td><span className="badge badge-medium">MEDIUM</span></td>
-                        <td>STG-WEB-02</td>
-                        <td>Cross Site Scripting in landing page form fields</td>
-                      </tr>
+                      {heatmapCells
+                        .filter(cell => !selectedCVE || cell.label === selectedCVE)
+                        .map(cell => {
+                          const details = CVE_DETAILS[cell.label] || { host: "UNKNOWN-HOST", desc: "No description available" };
+                          return (
+                            <tr key={cell.id} style={{ background: selectedCVE === cell.label ? "var(--surface-2)" : "" }}>
+                              <td><b>{cell.label}</b></td>
+                              <td style={{ fontFamily: "IBM Plex Mono", fontWeight: "bold" }}>{cell.score}</td>
+                              <td>
+                                <span className={`badge ${cell.class === "critical" ? "badge-critical" : cell.class === "high" ? "badge-high" : cell.class === "medium" ? "badge-medium" : "badge-low"}`}>
+                                  {cell.class.toUpperCase()}
+                                </span>
+                              </td>
+                              <td>{details.host}</td>
+                              <td style={{ whiteSpace: "normal" }}>{details.desc}</td>
+                            </tr>
+                          );
+                        })}
                     </tbody>
                   </table>
                 </div>
@@ -1072,14 +1451,14 @@ function Dashboard() {
                 <div className="ioc-card">
                   <div className="ioc-value">SOC2 Posture Audit</div>
                   <div className="ioc-type">Compliance Report</div>
-                  <button className="btn btn-primary" style={{ marginTop: "10px" }} onClick={() => showToast("success", "Exporting SOC2 report in PDF...")}>
+                  <button className="btn btn-primary" style={{ marginTop: "10px" }} onClick={downloadSOC2PDF}>
                     Download PDF
                   </button>
                 </div>
                 <div className="ioc-card">
                   <div className="ioc-value">Incident Logs (Last 24 Hours)</div>
                   <div className="ioc-type">Operations summary</div>
-                  <button className="btn btn-primary" style={{ marginTop: "10px" }} onClick={() => showToast("success", "CSV file generated.")}>
+                  <button className="btn btn-primary" style={{ marginTop: "10px" }} onClick={exportIncidentsCSV}>
                     Export CSV
                   </button>
                 </div>
