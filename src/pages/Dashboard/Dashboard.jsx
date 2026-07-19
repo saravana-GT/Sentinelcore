@@ -657,6 +657,114 @@ function Dashboard() {
     }
   };
 
+  // Phase 9: Incident Response Remediation Handlers
+  const handleKillProcessApi = async (hostname, pid) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/incidents/remediation/kill-process`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ hostname: hostname || "PROD-DB-01", pid: pid || 1024, username })
+      });
+      if (res.ok) {
+        showToast("success", `Terminated process PID ${pid || 1024} on host ${hostname || "PROD-DB-01"}`);
+        fetchAuditTrail();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleIsolateDeviceApi = async (hostname) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/incidents/remediation/isolate-device`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ hostname: hostname || "PROD-DB-01", username })
+      });
+      if (res.ok) {
+        showToast("success", `Network isolation enforced on ${hostname || "PROD-DB-01"}`);
+        fetchDbAssets();
+        fetchAuditTrail();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRestartAgentApi = async (hostname) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/incidents/remediation/restart-agent`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ hostname: hostname || "PROD-DB-01", username })
+      });
+      if (res.ok) {
+        showToast("success", `Restarted agent on ${hostname || "PROD-DB-01"}`);
+        fetchAuditTrail();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCollectLogsApi = async (hostname) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/incidents/remediation/collect-logs`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ hostname: hostname || "PROD-DB-01", username })
+      });
+      if (res.ok) {
+        showToast("success", `Forensic log collection bundle created for ${hostname || "PROD-DB-01"}`);
+        fetchAuditTrail();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRunScanApi = async (hostname) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/incidents/remediation/run-scan`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ hostname: hostname || "PROD-DB-01", username })
+      });
+      if (res.ok) {
+        showToast("success", `Triggered security scan on ${hostname || "PROD-DB-01"}`);
+        fetchAuditTrail();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchAuditTrail = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/incidents/audit-trail`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAuditLogs(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "audit") {
+      fetchAuditTrail();
+    }
+  }, [activeTab]);
+
   // Live feed stream simulation
   useEffect(() => {
     if (!autoRefresh) return;
@@ -1480,7 +1588,7 @@ function Dashboard() {
                               <span className="k-card-sla">{inc.sla}</span>
                             </div>
                             
-                            <div className="k-card-actions">
+                            <div className="k-card-actions" style={{ flexWrap: "wrap", gap: "4px" }}>
                               {status !== "Open" && (
                                 <button className="k-card-action-btn" onClick={() => moveIncident(inc.id, status === "Triaged" ? "Open" : status === "In Progress" ? "Triaged" : "In Progress")}>
                                   ◀ Move
@@ -1491,6 +1599,15 @@ function Dashboard() {
                                   Move ▶
                                 </button>
                               )}
+                              <button className="k-card-action-btn" style={{ color: "var(--red)" }} title="Isolate Device" onClick={() => handleIsolateDeviceApi("PROD-DB-01")}>
+                                ⚡ Isolate
+                              </button>
+                              <button className="k-card-action-btn" style={{ color: "var(--amber)" }} title="Kill Malicious Process" onClick={() => handleKillProcessApi("PROD-DB-01", 1024)}>
+                                🚫 Kill
+                              </button>
+                              <button className="k-card-action-btn" style={{ color: "var(--cyan)" }} title="Collect Forensic Logs" onClick={() => handleCollectLogsApi("PROD-DB-01")}>
+                                📦 Logs
+                              </button>
                             </div>
                           </div>
                         ))}
