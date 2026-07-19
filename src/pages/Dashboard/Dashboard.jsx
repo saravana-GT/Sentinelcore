@@ -117,6 +117,12 @@ function Dashboard() {
     { id: 8, score: 6.8, class: "medium", label: "CVE-2026-12" }
   ]);
 
+  // Playbooks & SOAR automation states
+  const [playbooks, setPlaybooks] = useState([]);
+  const [executions, setExecutions] = useState([]);
+  const [selectedExecution, setSelectedExecution] = useState(null);
+  const [activePlaybookSubTab, setActivePlaybookSubTab] = useState("available"); // 'available' | 'history'
+
   // System Settings
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -201,6 +207,79 @@ function Dashboard() {
 
     fetchThreats();
   }, []);
+
+  const fetchPlaybooks = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/playbooks`, {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPlaybooks(data);
+      }
+    } catch (err) {
+      console.error("Error fetching playbooks:", err);
+    }
+  };
+
+  const fetchExecutions = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/playbooks/executions`, {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setExecutions(data);
+      }
+    } catch (err) {
+      console.error("Error fetching executions:", err);
+    }
+  };
+
+  const executePlaybook = async (playbookId, playbookName) => {
+    try {
+      showToast("info", `Triggering execution for ${playbookName}...`);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/playbooks/${playbookId}/execute`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          initiatedBy: username || "ADMIN"
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        showToast("success", `Playbook ${playbookName} execution completed!`);
+        addAuditLog(`Executed SOAR playbook: ${playbookName}`);
+        fetchExecutions();
+        setActivePlaybookSubTab("history");
+        setSelectedExecution(data);
+      } else {
+        const errorText = await res.text();
+        console.error("Playbook execution failed:", errorText);
+        showToast("warning", "Playbook execution failed.");
+      }
+    } catch (err) {
+      console.error("Error executing playbook:", err);
+      showToast("warning", "Error executing playbook.");
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "playbooks") {
+      fetchPlaybooks();
+      fetchExecutions();
+    }
+  }, [activeTab]);
 
   // Live feed stream simulation
   useEffect(() => {
@@ -1386,25 +1465,197 @@ function Dashboard() {
                   <h2 style={{ fontSize: "20px", color: "var(--heading)", fontWeight: "800" }}>Incident Response Playbooks</h2>
                   <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>SOAR response scripts</p>
                 </div>
-                <button className="btn btn-primary" onClick={() => showToast("info", "Playbook builder is a premium add-on module.")}>
-                  + New Playbook
-                </button>
-              </div>
-
-              <div className="panel" style={{ marginBottom: "16px" }}>
-                <div className="panel-header"><div className="panel-title">Ransomware Containment Flow</div></div>
-                <div className="panel-body">
-                  <div className="playbook-flow">
-                    <div className="pb-step"><div className="pb-step-num">Step 1</div><div className="pb-step-name">Ingest Alert</div><div className="pb-step-type">Automated</div></div>
-                    <div className="pb-arrow">➔</div>
-                    <div className="pb-step" style={{ background: "var(--accent-dim)", borderColor: "var(--accent)" }}><div className="pb-step-num">Step 2</div><div className="pb-step-name">Isolate Host</div><div className="pb-step-type">EDR Action</div></div>
-                    <div className="pb-arrow">➔</div>
-                    <div className="pb-step"><div className="pb-step-num">Step 3</div><div className="pb-step-name">Revoke Access</div><div className="pb-step-type">IAM Script</div></div>
-                    <div className="pb-arrow">➔</div>
-                    <div className="pb-step"><div className="pb-step-num">Step 4</div><div className="pb-step-name">Triage Team Alert</div><div className="pb-step-type">Notification</div></div>
-                  </div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button 
+                    className={`btn ${activePlaybookSubTab === "available" ? "btn-primary" : "btn-ghost"}`} 
+                    onClick={() => setActivePlaybookSubTab("available")}
+                  >
+                    Available Playbooks
+                  </button>
+                  <button 
+                    className={`btn ${activePlaybookSubTab === "history" ? "btn-primary" : "btn-ghost"}`} 
+                    onClick={() => setActivePlaybookSubTab("history")}
+                  >
+                    Execution Logs ({executions.length})
+                  </button>
                 </div>
               </div>
+
+              {/* Sub-tab 1: Available Playbooks */}
+              {activePlaybookSubTab === "available" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  {playbooks.map((playbook) => (
+                    <div className="panel" key={playbook.id} style={{ marginBottom: "0" }}>
+                      <div className="panel-header" style={{ borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <div className="panel-title">{playbook.name}</div>
+                          <div className="panel-subtitle" style={{ marginTop: "4px" }}>{playbook.description}</div>
+                        </div>
+                        <button 
+                          className="btn btn-primary" 
+                          style={{ padding: "6px 12px", fontSize: "12px" }}
+                          onClick={() => executePlaybook(playbook.id, playbook.name)}
+                        >
+                          ▶ Run Playbook
+                        </button>
+                      </div>
+                      <div className="panel-body">
+                        <div style={{ display: "flex", alignItems: "center", overflowX: "auto", padding: "8px 0" }}>
+                          {playbook.steps && playbook.steps.map((step, idx) => (
+                            <div key={step.id} style={{ display: "flex", alignItems: "center" }}>
+                              <div style={{
+                                border: "1px solid var(--border)",
+                                background: "var(--bg)",
+                                padding: "8px 12px",
+                                borderRadius: "var(--radius)",
+                                textAlign: "left",
+                                minWidth: "160px"
+                              }}>
+                                <div style={{ fontSize: "10px", fontFamily: "IBM Plex Mono", color: "var(--text-dim)" }}>
+                                  Step {step.stepOrder} ({step.actionType})
+                                </div>
+                                <div style={{ fontSize: "12px", fontWeight: "600", color: "var(--heading)", marginTop: "2px" }}>
+                                  {step.displayName}
+                                </div>
+                                <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
+                                  {step.description}
+                                </div>
+                              </div>
+                              {idx < playbook.steps.length - 1 && (
+                                <span style={{ margin: "0 10px", color: "var(--text-dim)", fontSize: "16px" }}>➔</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {playbooks.length === 0 && (
+                    <div className="panel" style={{ padding: "40px", textAlign: "center", color: "var(--text-dim)" }}>
+                      Loading preseeded SOAR playbooks from database...
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Sub-tab 2: Execution Logs History */}
+              {activePlaybookSubTab === "history" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <div className="panel" style={{ padding: "0" }}>
+                    <div className="table-container">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Execution ID</th>
+                            <th>Playbook Name</th>
+                            <th>Triggered By</th>
+                            <th>Status</th>
+                            <th>Started At</th>
+                            <th>Duration</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {executions.map((exec) => (
+                            <tr 
+                              key={exec.id} 
+                              style={{ cursor: "pointer", background: selectedExecution?.id === exec.id ? "var(--surface-2)" : "" }}
+                              onClick={() => setSelectedExecution(exec)}
+                            >
+                              <td><b>RUN-{exec.id}</b></td>
+                              <td>{exec.playbookName}</td>
+                              <td>@{exec.initiatedBy}</td>
+                              <td>
+                                <span className={`badge ${
+                                  exec.status === "COMPLETED" ? "badge-green" : 
+                                  exec.status === "FAILED" ? "badge-critical" : 
+                                  exec.status === "RUNNING" ? "badge-high" : "badge-low"
+                                }`}>
+                                  {exec.status}
+                                </span>
+                              </td>
+                              <td style={{ fontSize: "12px" }}>{new Date(exec.startedAt).toLocaleString()}</td>
+                              <td style={{ fontFamily: "IBM Plex Mono" }}>{exec.executionDuration}ms</td>
+                              <td>
+                                <button 
+                                  className="btn btn-ghost" 
+                                  style={{ padding: "2px 8px", fontSize: "11px" }}
+                                  onClick={(e) => { e.stopPropagation(); setSelectedExecution(exec); }}
+                                >
+                                  View Steps
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                          {executions.length === 0 && (
+                            <tr>
+                              <td colSpan="7" style={{ textAlign: "center", color: "var(--text-dim)", padding: "20px" }}>
+                                No playbook executions run yet. Run a playbook to see logs!
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Detailed Step Logs for Selected Run */}
+                  {selectedExecution && (
+                    <div className="panel">
+                      <div className="panel-header" style={{ borderBottom: "1px solid var(--border)" }}>
+                        <div className="panel-title">Detailed Step Logs: RUN-{selectedExecution.id} ({selectedExecution.playbookName})</div>
+                      </div>
+                      <div className="panel-body" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        {selectedExecution.logs && selectedExecution.logs.map((log) => (
+                          <div key={log.id} style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: "12px",
+                            padding: "10px 12px",
+                            border: "1px solid var(--border)",
+                            background: "var(--surface-2)",
+                            borderRadius: "var(--radius)"
+                          }}>
+                            <div style={{
+                              fontFamily: "IBM Plex Mono",
+                              fontSize: "11px",
+                              fontWeight: "bold",
+                              color: "var(--text-dim)",
+                              marginTop: "2px"
+                            }}>
+                              Step {log.stepOrder}
+                            </div>
+                            <div style={{ flex: 1, textAlign: "left" }}>
+                              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                                <span style={{ fontSize: "13px", fontWeight: "600", color: "var(--heading)" }}>
+                                  {log.actionType}
+                                </span>
+                                <span className={`badge ${
+                                  log.status === "COMPLETED" ? "badge-green" : 
+                                  log.status === "FAILED" ? "badge-critical" : "badge-high"
+                                }`} style={{ fontSize: "9px", padding: "1px 4px" }}>
+                                  {log.status}
+                                </span>
+                                <span style={{ fontSize: "10px", color: "var(--text-dim)", marginLeft: "auto", fontFamily: "IBM Plex Mono" }}>
+                                  Duration: {log.duration}ms
+                                </span>
+                              </div>
+                              <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
+                                {log.message}
+                              </p>
+                              {log.errorMessage && (
+                                <p style={{ fontSize: "11px", color: "var(--red)", marginTop: "4px", background: "var(--red-dim)", padding: "4px 8px", borderRadius: "4px", border: "1px solid var(--red)" }}>
+                                  Error: {log.errorMessage}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
