@@ -58,6 +58,9 @@ public class Asset {
     private String criticality; // CRITICAL, HIGH, MEDIUM, LOW
     private String status;      // ACTIVE, INACTIVE
     
+    @Column(name = "risk_score")
+    private Double riskScore;
+
     @Column(name = "agent_status")
     private String agentStatus; // ONLINE, OFFLINE, UNINSTALLED
 
