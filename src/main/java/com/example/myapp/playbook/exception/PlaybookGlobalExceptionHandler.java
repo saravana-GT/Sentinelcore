@@ -14,8 +14,8 @@ import java.util.Map;
 /**
  * Centralised exception handler that converts domain exceptions into structured HTTP responses.
  */
-@RestControllerAdvice
-public class GlobalExceptionHandler {
+@RestControllerAdvice(basePackages = "com.example.myapp.playbook")
+public class PlaybookGlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex) {
