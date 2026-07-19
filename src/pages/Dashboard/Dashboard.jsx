@@ -123,6 +123,50 @@ function Dashboard() {
   const [selectedExecution, setSelectedExecution] = useState(null);
   const [activePlaybookSubTab, setActivePlaybookSubTab] = useState("available"); // 'available' | 'history'
 
+  // Live Telemetry & WebSockets States
+  const [liveMetrics, setLiveMetrics] = useState({
+    totalAssets: 0,
+    onlineAssets: 0,
+    offlineAssets: 0,
+    criticalAlerts: 3,
+    highAlerts: 7,
+    mediumAlerts: 12,
+    lowAlerts: 4,
+    avgCpu: 35.4,
+    avgRam: 62.1,
+    avgDisk: 48.0
+  });
+  const [wsConnected, setWsConnected] = useState(false);
+
+  // Asset Management API States
+  const [dbAssets, setDbAssets] = useState([]);
+  const [assetTotalPages, setAssetTotalPages] = useState(1);
+  const [assetPage, setAssetPage] = useState(0);
+  const [assetSearch, setAssetSearch] = useState("");
+  const [assetTypeFilter, setAssetTypeFilter] = useState("");
+  const [assetCriticalityFilter, setAssetCriticalityFilter] = useState("");
+  const [assetStatusFilter, setAssetStatusFilter] = useState("");
+  const [assetAgentStatusFilter, setAssetAgentStatusFilter] = useState("");
+  const [selectedAssetDetail, setSelectedAssetDetail] = useState(null);
+  const [assetDetailSubTab, setAssetDetailSubTab] = useState("processes");
+
+  // Phase 4: Vulnerability Management States
+  const [dbVulnerabilities, setDbVulnerabilities] = useState([]);
+  const [vulnSeverityFilter, setVulnSeverityFilter] = useState("");
+  const [vulnPatchFilter, setVulnPatchFilter] = useState("");
+
+  // Phase 5: Network Discovery States
+  const [targetSubnet, setTargetSubnet] = useState("192.168.1.0/24");
+  const [isDiscoveryScanning, setIsDiscoveryScanning] = useState(false);
+
+  // Phase 6: SIEM Log Explorer States
+  const [dbSiemLogs, setDbSiemLogs] = useState([]);
+  const [siemLogTotalPages, setSiemLogTotalPages] = useState(1);
+  const [siemLogPage, setSiemLogPage] = useState(0);
+  const [siemLogQuery, setSiemLogQuery] = useState("");
+  const [siemLogSourceFilter, setSiemLogSourceFilter] = useState("");
+  const [siemSeverityFilter, setSiemSeverityFilter] = useState("");
+
   // System Settings
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -280,6 +324,338 @@ function Dashboard() {
       fetchExecutions();
     }
   }, [activeTab]);
+
+  // Live WebSocket Telemetry Stream
+  useEffect(() => {
+    let ws;
+    let timer;
+    const connectWs = () => {
+      try {
+        const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = API_URL.startsWith("http") 
+          ? API_URL.replace(/^http/, 'ws') + '/ws/dashboard' 
+          : `${wsProtocol}//${window.location.host}/ws/dashboard`;
+
+        ws = new WebSocket(wsUrl);
+        ws.onopen = () => {
+          setWsConnected(true);
+          console.log("Connected to SentinelCore live WebSocket telemetry stream!");
+        };
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === "DASHBOARD_LIVE_METRICS" && data.stats) {
+              setLiveMetrics(data.stats);
+            }
+          } catch (err) {
+            console.error("Error parsing WebSocket telemetry:", err);
+          }
+        };
+        ws.onclose = () => {
+          setWsConnected(false);
+          timer = setTimeout(connectWs, 4000);
+        };
+        ws.onerror = () => {
+          setWsConnected(false);
+        };
+      } catch (err) {
+        console.error("WebSocket connection failure:", err);
+      }
+    };
+
+    connectWs();
+    return () => {
+      if (ws) ws.close();
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
+
+  // Asset Management REST API handlers
+  const fetchDbAssets = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const queryParams = new URLSearchParams({
+        page: assetPage,
+        size: 8,
+        sortBy: "id",
+        sortDir: "desc"
+      });
+      if (assetSearch) queryParams.append("search", assetSearch);
+      if (assetTypeFilter) queryParams.append("type", assetTypeFilter);
+      if (assetCriticalityFilter) queryParams.append("criticality", assetCriticalityFilter);
+      if (assetStatusFilter) queryParams.append("status", assetStatusFilter);
+      if (assetAgentStatusFilter) queryParams.append("agentStatus", assetAgentStatusFilter);
+
+      const res = await fetch(`${API_URL}/api/assets?${queryParams.toString()}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDbAssets(data.content || []);
+        setAssetTotalPages(data.totalPages || 1);
+      }
+    } catch (err) {
+      console.error("Error fetching database assets:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "assets") {
+      fetchDbAssets();
+    }
+  }, [activeTab, assetPage, assetSearch, assetTypeFilter, assetCriticalityFilter, assetStatusFilter, assetAgentStatusFilter]);
+
+  const handleCreateAssetApi = async (e) => {
+    if (e) e.preventDefault();
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/assets`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          hostname: newAsset.hostname,
+          deviceName: newAsset.hostname + "-NODE",
+          assetType: newAsset.assetType || "DESKTOP",
+          operatingSystem: newAsset.os || "Linux Ubuntu",
+          ipAddress: newAsset.ip || "10.0.3.15",
+          criticality: newAsset.criticality || "MEDIUM",
+          owner: newAsset.owner || "IT Ops",
+          status: "ACTIVE",
+          agentStatus: "UNINSTALLED"
+        })
+      });
+      if (res.ok) {
+        showToast("success", `Asset ${newAsset.hostname} created in database!`);
+        addAuditLog(`Registered new asset: ${newAsset.hostname}`);
+        closeModal();
+        fetchDbAssets();
+      } else {
+        showToast("warning", "Error creating asset in database.");
+      }
+    } catch (err) {
+      console.error("Error creating asset:", err);
+      showToast("warning", "Error creating asset.");
+    }
+  };
+
+  const handleDeleteAssetApi = async (id, hostname) => {
+    if (!window.confirm(`Are you sure you want to delete asset ${hostname}?`)) return;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/assets/${id}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast("success", `Asset ${hostname} deleted.`);
+        addAuditLog(`Deleted asset: ${hostname}`);
+        fetchDbAssets();
+      }
+    } catch (err) {
+      console.error("Error deleting asset:", err);
+    }
+  };
+
+  const handleExportAssetsApi = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/assets/export`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "sentinelcore_assets.csv";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        showToast("success", "Exported assets CSV file successfully!");
+      }
+    } catch (err) {
+      console.error("Error exporting assets CSV:", err);
+    }
+  };
+
+  const handleImportAssetsApi = async (file) => {
+    try {
+      const token = localStorage.getItem("token");
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`${API_URL}/api/assets/import`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` },
+        body: formData
+      });
+      if (res.ok) {
+        showToast("success", "Assets CSV imported into database successfully!");
+        fetchDbAssets();
+      }
+    } catch (err) {
+      console.error("Error importing assets CSV:", err);
+    }
+  };
+
+  const viewAssetDetailsApi = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/assets/${id}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedAssetDetail(data);
+        openModal("assetDetails");
+      }
+    } catch (err) {
+      console.error("Error viewing asset details:", err);
+    }
+  };
+
+  // Phase 4: Vulnerability Management API Handlers
+  const fetchDbVulnerabilities = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const queryParams = new URLSearchParams({ page: 0, size: 20 });
+      if (vulnSeverityFilter) queryParams.append("severity", vulnSeverityFilter);
+      if (vulnPatchFilter) queryParams.append("patchStatus", vulnPatchFilter);
+
+      const res = await fetch(`${API_URL}/api/vulnerabilities?${queryParams.toString()}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDbVulnerabilities(data.content || []);
+      }
+    } catch (err) {
+      console.error("Error fetching database vulnerabilities:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "vulnerabilities") {
+      fetchDbVulnerabilities();
+    }
+  }, [activeTab, vulnSeverityFilter, vulnPatchFilter]);
+
+  const handleRunCveScanApi = async () => {
+    setIsScanning(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/vulnerabilities/scan`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        showToast("success", `Automated CVE scan complete: ${data.vulnerabilitiesDetected} vulnerabilities mapped!`);
+        addAuditLog(`Triggered automated host software CVE scan.`);
+        fetchDbVulnerabilities();
+      }
+    } catch (err) {
+      console.error("Error running CVE scan:", err);
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handlePatchVulnerabilityApi = async (id, cveId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/vulnerabilities/${id}/patch`, {
+        method: "PUT",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast("success", `Patched vulnerability ${cveId} successfully!`);
+        addAuditLog(`Applied security patch for ${cveId}`);
+        fetchDbVulnerabilities();
+      }
+    } catch (err) {
+      console.error("Error patching vulnerability:", err);
+    }
+  };
+
+  // Phase 5: Network Discovery API Handler
+  const handleRunNetworkDiscoveryApi = async () => {
+    setIsDiscoveryScanning(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/network-discovery/scan`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ targetSubnet, ports: "22,80,443,445,3389" })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        showToast("success", `Network discovery scan completed: ${data.hostsFound} hosts detected & registered!`);
+        addAuditLog(`Ran subnet discovery scan on ${targetSubnet}`);
+        fetchDbAssets();
+      }
+    } catch (err) {
+      console.error("Error running discovery scan:", err);
+    } finally {
+      setIsDiscoveryScanning(false);
+    }
+  };
+
+  // Phase 6: SIEM Log Explorer API Handlers
+  const fetchDbSiemLogs = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const queryParams = new URLSearchParams({
+        page: siemLogPage,
+        size: 15,
+        sortBy: "timestamp",
+        sortDir: "desc"
+      });
+      if (siemLogQuery) queryParams.append("query", siemLogQuery);
+      if (siemLogSourceFilter) queryParams.append("logSource", siemLogSourceFilter);
+      if (siemSeverityFilter) queryParams.append("severity", siemSeverityFilter);
+
+      const res = await fetch(`${API_URL}/api/siem/logs?${queryParams.toString()}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDbSiemLogs(data.content || []);
+        setSiemLogTotalPages(data.totalPages || 1);
+      }
+    } catch (err) {
+      console.error("Error fetching SIEM logs:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "logs") {
+      fetchDbSiemLogs();
+    }
+  }, [activeTab, siemLogPage, siemLogQuery, siemLogSourceFilter, siemSeverityFilter]);
+
+  const handleApplyRetentionPolicyApi = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/siem/logs/retention?retentionDays=90`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        showToast("success", `Retention policy applied: pruned ${data.deletedLogsCount} old logs.`);
+        addAuditLog(`Applied SIEM log retention policy (90 days).`);
+        fetchDbSiemLogs();
+      }
+    } catch (err) {
+      console.error("Error applying retention policy:", err);
+    }
+  };
 
   // Live feed stream simulation
   useEffect(() => {
@@ -861,11 +1237,23 @@ function Dashboard() {
           {/* ===== 1. DASHBOARD VIEW ===== */}
           {activeTab === "dashboard" && (
             <div className="dashboard-page">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <div>
+                  <h2 style={{ fontSize: "20px", color: "var(--heading)", fontWeight: "800" }}>Command Center Dashboard</h2>
+                  <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>Real-time telemetry, live asset telemetry & incident triage</p>
+                </div>
+                <div>
+                  <span className={`badge ${wsConnected ? "badge-green" : "badge-amber"}`} style={{ fontSize: "11px", padding: "6px 12px" }}>
+                    {wsConnected ? "● WEBSOCKET TELEMETRY LIVE" : "○ CONNECTING WEBSOCKET..."}
+                  </span>
+                </div>
+              </div>
+
               <div className="stats-grid">
                 <div className="stat-card red">
-                  <div className="stat-label">Active Incidents</div>
-                  <div className="stat-value">{incidents.filter(i => i.status !== "Resolved").length}</div>
-                  <div className="stat-change up">▲ 3 from yesterday</div>
+                  <div className="stat-label">Critical Alerts</div>
+                  <div className="stat-value">{liveMetrics.criticalAlerts}</div>
+                  <div className="stat-change up">▲ Real-Time Trigger</div>
                   <div className="stat-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -875,9 +1263,9 @@ function Dashboard() {
                   </div>
                 </div>
                 <div className="stat-card amber">
-                  <div className="stat-label">Open Alerts</div>
-                  <div className="stat-value">{alerts.filter(a => a.status !== "Resolved").length}</div>
-                  <div className="stat-change up">▲ 7 from yesterday</div>
+                  <div className="stat-label">Online Assets</div>
+                  <div className="stat-value">{liveMetrics.onlineAssets}<span style={{ fontSize: "13px", color: "var(--text-dim)" }}>/{liveMetrics.totalAssets || dbAssets.length}</span></div>
+                  <div className="stat-change up" style={{ color: "var(--green)" }}>● {liveMetrics.onlineAssets} Agent Heartbeats</div>
                   <div className="stat-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -886,9 +1274,9 @@ function Dashboard() {
                   </div>
                 </div>
                 <div className="stat-card purple">
-                  <div className="stat-label">Risk Score</div>
-                  <div className="stat-value">72</div>
-                  <div className="stat-change up">▲ 4 pts increase</div>
+                  <div className="stat-label">Average CPU Load</div>
+                  <div className="stat-value">{liveMetrics.avgCpu}%</div>
+                  <div className="stat-change up">▲ System Utilization</div>
                   <div className="stat-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
@@ -897,9 +1285,9 @@ function Dashboard() {
                   </div>
                 </div>
                 <div className="stat-card green">
-                  <div className="stat-label">MTTR (Mean Time)</div>
-                  <div className="stat-value">4.2<span style={{ fontSize: "14px", color: "var(--text-dim)" }}>h</span></div>
-                  <div className="stat-change down">▼ 12% improved</div>
+                  <div className="stat-label">Average RAM Load</div>
+                  <div className="stat-value">{liveMetrics.avgRam}%</div>
+                  <div className="stat-change down" style={{ color: "var(--cyan)" }}>▼ Telemetry Stream</div>
                   <div className="stat-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10"/>
@@ -909,8 +1297,8 @@ function Dashboard() {
                 </div>
                 <div className="stat-card cyan">
                   <div className="stat-label">Monitored Assets</div>
-                  <div className="stat-value">{assets.length}</div>
-                  <div className="stat-change" style={{ color: "var(--text-dim)" }}>— active monitor</div>
+                  <div className="stat-value">{liveMetrics.totalAssets || dbAssets.length}</div>
+                  <div className="stat-change" style={{ color: "var(--text-dim)" }}>— Registered Hosts</div>
                   <div className="stat-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
@@ -1218,76 +1606,72 @@ function Dashboard() {
           {/* ===== 5. VULNERABILITIES VIEW ===== */}
           {activeTab === "vulnerabilities" && (
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", textAlign: "left" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", textAlign: "left", flexWrap: "wrap", gap: "10px" }}>
                 <div>
-                  <h2 style={{ fontSize: "20px", color: "var(--heading)", fontWeight: "800" }}>Vulnerability Scanner</h2>
-                  <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>CVSS host based vulnerabilities and scans</p>
+                  <h2 style={{ fontSize: "20px", color: "var(--heading)", fontWeight: "800" }}>Enterprise Vulnerability & CVE Management</h2>
+                  <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>NVD/OpenVAS/Nessus catalog, host software mapping & automated patch lifecycle</p>
                 </div>
-                <button className="btn btn-primary" onClick={runScan} disabled={isScanning}>
-                  {isScanning ? "Scanning Hosts..." : "▶ Run Vulnerability Scan"}
+                <button className="btn btn-primary" onClick={handleRunCveScanApi} disabled={isScanning}>
+                  {isScanning ? "Scanning Host Software..." : "⚡ Run Automated CVE Mapping"}
                 </button>
               </div>
 
-              <div className="panel" style={{ marginBottom: "20px", textAlign: "left" }}>
-                <div className="panel-header">
-                  <div className="panel-title">Asset Vulnerability Matrix (Heatmap)</div>
-                </div>
-                <div className="panel-body">
-                  <div className="vuln-heatmap">
-                    {heatmapCells.map((cell) => {
-                      const isSelected = selectedCVE === cell.label;
-                      return (
-                        <div 
-                          className={`heat-cell ${cell.class} ${isSelected ? "selected" : ""}`} 
-                          key={cell.id}
-                          onClick={() => {
-                            if (selectedCVE === cell.label) {
-                              setSelectedCVE(null);
-                            } else {
-                              setSelectedCVE(cell.label);
-                              showToast("info", `Filtering table for ${cell.label}`);
-                            }
-                          }}
-                          title={`${cell.label}: CVSS ${cell.score}`}
-                          style={{
-                            background: cell.class === "critical" ? "var(--red-dim)" : cell.class === "high" ? "var(--amber-dim)" : "var(--purple-dim)",
-                            color: cell.class === "critical" ? "var(--red)" : cell.class === "high" ? "var(--amber)" : "var(--purple)",
-                            border: isSelected 
-                              ? `2px solid var(--text)`
-                              : `1px solid ${cell.class === "critical" ? "var(--red)" : cell.class === "high" ? "var(--amber)" : "var(--purple)"}`,
-                            transform: isSelected ? "scale(1.15)" : "none",
-                            boxShadow: isSelected ? "var(--shadow-lg)" : "none"
-                          }}
-                        >
-                          {cell.score}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <p style={{ fontSize: "11px", color: "var(--text-dim)" }}>
-                    * Click on any CVSS cell block to display catalog references.
-                  </p>
+              {/* Filter Controls Bar */}
+              <div className="panel" style={{ marginBottom: "16px", padding: "12px 16px" }}>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+                  <select 
+                    className="form-select" 
+                    style={{ width: "auto", fontSize: "12px" }} 
+                    value={vulnSeverityFilter} 
+                    onChange={(e) => setVulnSeverityFilter(e.target.value)}
+                  >
+                    <option value="">All Severities</option>
+                    <option value="CRITICAL">Critical</option>
+                    <option value="HIGH">High</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="LOW">Low</option>
+                  </select>
+
+                  <select 
+                    className="form-select" 
+                    style={{ width: "auto", fontSize: "12px" }} 
+                    value={vulnPatchFilter} 
+                    onChange={(e) => setVulnPatchFilter(e.target.value)}
+                  >
+                    <option value="">All Patch Lifecycle States</option>
+                    <option value="VULNERABLE">Vulnerable (Unpatched)</option>
+                    <option value="PATCHED">Patched / Mitigated</option>
+                  </select>
                 </div>
               </div>
 
-              <div className="panel">
+              {/* Heatmap & Matrix Panel */}
+              <div className="panel" style={{ marginBottom: "20px", textAlign: "left" }}>
+                <div className="panel-header">
+                  <div className="panel-title">Asset CVSS Risk Matrix</div>
+                </div>
+                <div className="panel-body">
+                  <div className="vuln-heatmap">
+                    {heatmapCells.map((cell) => (
+                      <div 
+                        className={`heat-cell ${cell.class}`} 
+                        key={cell.id}
+                        title={`${cell.label}: CVSS ${cell.score}`}
+                        style={{
+                          background: cell.class === "critical" ? "var(--red-dim)" : cell.class === "high" ? "var(--amber-dim)" : "var(--purple-dim)",
+                          color: cell.class === "critical" ? "var(--red)" : cell.class === "high" ? "var(--amber)" : "var(--purple)"
+                        }}
+                      >
+                        {cell.score}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Database Vulnerability Catalog Table */}
+              <div className="panel" style={{ padding: "0" }}>
                 <div className="table-container">
-                  {selectedCVE && (
-                    <div style={{
-                      background: "var(--bg-alt)",
-                      borderBottom: "1px solid var(--border)",
-                      padding: "10px 16px",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      fontSize: "12px"
-                    }}>
-                      <span>Showing catalog reference for <b>{selectedCVE}</b></span>
-                      <button className="btn btn-ghost" style={{ padding: "2px 8px", fontSize: "11px" }} onClick={() => setSelectedCVE(null)}>
-                        Clear Filter
-                      </button>
-                    </div>
-                  )}
                   <table className="data-table">
                     <thead>
                       <tr>
@@ -1295,28 +1679,57 @@ function Dashboard() {
                         <th>CVSS Rating</th>
                         <th>Severity</th>
                         <th>Affected Host</th>
-                        <th>Vulnerability Reference Description</th>
+                        <th>Detected Software</th>
+                        <th>Patch Lifecycle State</th>
+                        <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {heatmapCells
-                        .filter(cell => !selectedCVE || cell.label === selectedCVE)
-                        .map(cell => {
-                          const details = CVE_DETAILS[cell.label] || { host: "UNKNOWN-HOST", desc: "No description available" };
-                          return (
-                            <tr key={cell.id} style={{ background: selectedCVE === cell.label ? "var(--surface-2)" : "" }}>
-                              <td><b>{cell.label}</b></td>
-                              <td style={{ fontFamily: "IBM Plex Mono", fontWeight: "bold" }}>{cell.score}</td>
-                              <td>
-                                <span className={`badge ${cell.class === "critical" ? "badge-critical" : cell.class === "high" ? "badge-high" : cell.class === "medium" ? "badge-medium" : "badge-low"}`}>
-                                  {cell.class.toUpperCase()}
-                                </span>
-                              </td>
-                              <td>{details.host}</td>
-                              <td style={{ whiteSpace: "normal" }}>{details.desc}</td>
-                            </tr>
-                          );
-                        })}
+                      {dbVulnerabilities.length > 0 ? (
+                        dbVulnerabilities.map((v) => (
+                          <tr key={v.id}>
+                            <td>
+                              <b>{v.cveId}</b>
+                              <div style={{ fontSize: "11px", color: "var(--text-dim)", maxWidth: "260px", whiteSpace: "normal" }}>{v.description}</div>
+                            </td>
+                            <td style={{ fontFamily: "IBM Plex Mono", fontWeight: "bold" }}>{v.cvssScore}</td>
+                            <td>
+                              <span className={`badge ${
+                                v.severity === "CRITICAL" ? "badge-critical" :
+                                v.severity === "HIGH" ? "badge-high" : "badge-medium"
+                              }`}>
+                                {v.severity}
+                              </span>
+                            </td>
+                            <td><b>{v.hostname || "SYSTEM-HOST"}</b></td>
+                            <td><code style={{ fontSize: "11px" }}>{v.detectedSoftware}</code></td>
+                            <td>
+                              <span className={`badge ${v.patchStatus === "PATCHED" ? "badge-green" : "badge-critical"}`}>
+                                {v.patchStatus}
+                              </span>
+                            </td>
+                            <td>
+                              {v.patchStatus !== "PATCHED" ? (
+                                <button 
+                                  className="btn btn-primary" 
+                                  style={{ padding: "3px 8px", fontSize: "11px", background: "var(--green)", borderColor: "var(--green)" }}
+                                  onClick={() => handlePatchVulnerabilityApi(v.id, v.cveId)}
+                                >
+                                  Patch CVE
+                                </button>
+                              ) : (
+                                <span style={{ fontSize: "11px", color: "var(--text-dim)" }}>Patched</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="7" style={{ textAlign: "center", color: "var(--text-dim)", padding: "24px" }}>
+                            No mapped vulnerabilities found. Click "⚡ Run Automated CVE Mapping" above!
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -1327,52 +1740,192 @@ function Dashboard() {
           {/* ===== 6. ASSETS VIEW ===== */}
           {activeTab === "assets" && (
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", textAlign: "left" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", textAlign: "left", flexWrap: "wrap", gap: "10px" }}>
                 <div>
-                  <h2 style={{ fontSize: "20px", color: "var(--heading)", fontWeight: "800" }}>System Asset Inventory</h2>
-                  <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>monitored servers and directory hosts</p>
+                  <h2 style={{ fontSize: "20px", color: "var(--heading)", fontWeight: "800" }}>Enterprise System Asset Inventory</h2>
+                  <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>Database backed assets, endpoint telemetry & infrastructure inventory</p>
                 </div>
-                <button className="btn btn-primary" onClick={() => openModal("addAsset")}>+ Add Asset</button>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                  <button className="btn btn-ghost" style={{ fontSize: "12px" }} onClick={handleRunNetworkDiscoveryApi} disabled={isDiscoveryScanning}>
+                    {isDiscoveryScanning ? "Scanning Subnet..." : "🌐 Network Discovery Scan"}
+                  </button>
+                  <label className="btn btn-ghost" style={{ cursor: "pointer", fontSize: "12px", display: "inline-flex", alignItems: "center" }}>
+                    📤 Import CSV
+                    <input 
+                      type="file" 
+                      accept=".csv" 
+                      style={{ display: "none" }} 
+                      onChange={(e) => e.target.files && e.target.files[0] && handleImportAssetsApi(e.target.files[0])}
+                    />
+                  </label>
+                  <button className="btn btn-ghost" style={{ fontSize: "12px" }} onClick={handleExportAssetsApi}>
+                    📥 Export CSV
+                  </button>
+                  <button className="btn btn-primary" style={{ fontSize: "12px" }} onClick={() => openModal("addAsset")}>
+                    + Add Asset
+                  </button>
+                </div>
               </div>
 
-              <div className="panel">
+              {/* Filter Controls Bar */}
+              <div className="panel" style={{ marginBottom: "16px", padding: "12px 16px" }}>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+                  <div className="search-box" style={{ flex: 1, minWidth: "220px" }}>
+                    <span>🔍</span>
+                    <input 
+                      type="text" 
+                      placeholder="Search hostname, IP, MAC, owner, department..." 
+                      value={assetSearch} 
+                      onChange={(e) => { setAssetSearch(e.target.value); setAssetPage(0); }}
+                    />
+                  </div>
+                  <select 
+                    className="form-select" 
+                    style={{ width: "auto", fontSize: "12px" }} 
+                    value={assetTypeFilter} 
+                    onChange={(e) => { setAssetTypeFilter(e.target.value); setAssetPage(0); }}
+                  >
+                    <option value="">All Asset Types</option>
+                    <option value="DESKTOP">Desktop</option>
+                    <option value="LAPTOP">Laptop</option>
+                    <option value="WINDOWS_SERVER">Windows Server</option>
+                    <option value="LINUX_SERVER">Linux Server</option>
+                    <option value="VIRTUAL_MACHINE">Virtual Machine</option>
+                    <option value="ROUTER">Router</option>
+                    <option value="FIREWALL">Firewall</option>
+                    <option value="SWITCH">Switch</option>
+                    <option value="CLOUD_INSTANCE">Cloud Instance</option>
+                  </select>
+
+                  <select 
+                    className="form-select" 
+                    style={{ width: "auto", fontSize: "12px" }} 
+                    value={assetCriticalityFilter} 
+                    onChange={(e) => { setAssetCriticalityFilter(e.target.value); setAssetPage(0); }}
+                  >
+                    <option value="">All Criticalities</option>
+                    <option value="CRITICAL">Critical</option>
+                    <option value="HIGH">High</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="LOW">Low</option>
+                  </select>
+
+                  <select 
+                    className="form-select" 
+                    style={{ width: "auto", fontSize: "12px" }} 
+                    value={assetAgentStatusFilter} 
+                    onChange={(e) => { setAssetAgentStatusFilter(e.target.value); setAssetPage(0); }}
+                  >
+                    <option value="">All Agent Statuses</option>
+                    <option value="ONLINE">Agent Online</option>
+                    <option value="OFFLINE">Agent Offline</option>
+                    <option value="UNINSTALLED">Uninstalled</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Assets Inventory Data Table */}
+              <div className="panel" style={{ padding: "0" }}>
                 <div className="table-container">
                   <table className="data-table">
                     <thead>
                       <tr>
                         <th>Hostname</th>
+                        <th>Type / OS</th>
                         <th>IP Address</th>
-                        <th>OS Platform</th>
+                        <th>MAC Address</th>
                         <th>Criticality</th>
-                        <th>Team Owner</th>
-                        <th>Asset Risk</th>
-                        <th>Compliance State</th>
-                        <th>Last Ping</th>
+                        <th>Owner / Dept</th>
+                        <th>Agent Status</th>
+                        <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {assets.map((as, idx) => (
-                        <tr key={idx}>
-                          <td><b>{as.hostname}</b></td>
-                          <td><code style={{ fontSize: "11px" }}>{as.ip}</code></td>
-                          <td>{as.os}</td>
-                          <td>{as.criticality}</td>
-                          <td>{as.owner}</td>
-                          <td>
-                            <span className={`badge ${as.riskScore > 75 ? "badge-critical" : as.riskScore > 50 ? "badge-high" : "badge-low"}`}>
-                              {as.riskScore}%
-                            </span>
+                      {dbAssets.length > 0 ? (
+                        dbAssets.map((as) => (
+                          <tr key={as.id}>
+                            <td>
+                              <b>{as.hostname}</b>
+                              {as.deviceName && <div style={{ fontSize: "11px", color: "var(--text-dim)" }}>{as.deviceName}</div>}
+                            </td>
+                            <td>
+                              <span style={{ fontWeight: "600" }}>{as.assetType}</span>
+                              <div style={{ fontSize: "11px", color: "var(--text-dim)" }}>{as.operatingSystem || "Linux/Unix"}</div>
+                            </td>
+                            <td><code style={{ fontSize: "11px" }}>{as.ipAddress || "127.0.0.1"}</code></td>
+                            <td><code style={{ fontSize: "11px" }}>{as.macAddress || "N/A"}</code></td>
+                            <td>
+                              <span className={`badge ${
+                                as.criticality === "CRITICAL" || as.criticality === "Critical" ? "badge-critical" :
+                                as.criticality === "HIGH" || as.criticality === "High" ? "badge-high" : "badge-medium"
+                              }`}>
+                                {as.criticality}
+                              </span>
+                            </td>
+                            <td>
+                              <div>{as.owner || "IT System"}</div>
+                              <div style={{ fontSize: "11px", color: "var(--text-dim)" }}>{as.department || "Infra"}</div>
+                            </td>
+                            <td>
+                              <span className={`badge ${
+                                as.agentStatus === "ONLINE" ? "badge-green" :
+                                as.agentStatus === "OFFLINE" ? "badge-critical" : "badge-low"
+                              }`}>
+                                {as.agentStatus || "UNINSTALLED"}
+                              </span>
+                            </td>
+                            <td>
+                              <div style={{ display: "flex", gap: "6px" }}>
+                                <button 
+                                  className="btn btn-ghost" 
+                                  style={{ padding: "3px 8px", fontSize: "11px" }}
+                                  onClick={() => viewAssetDetailsApi(as.id)}
+                                >
+                                  Details
+                                </button>
+                                <button 
+                                  className="btn btn-ghost" 
+                                  style={{ padding: "3px 8px", fontSize: "11px", color: "var(--red)" }}
+                                  onClick={() => handleDeleteAssetApi(as.id, as.hostname)}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="8" style={{ textAlign: "center", color: "var(--text-dim)", padding: "30px" }}>
+                            No matching assets found in database. Add an asset or run the agent script (`agent.py`)!
                           </td>
-                          <td>
-                            <span className={`badge ${as.status === "Patched" ? "badge-green" : "badge-amber"}`}>
-                              {as.status}
-                            </span>
-                          </td>
-                          <td>{as.lastSeen}</td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Pagination Controls */}
+                <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <button 
+                    className="btn btn-ghost" 
+                    style={{ fontSize: "12px" }}
+                    disabled={assetPage <= 0} 
+                    onClick={() => setAssetPage(p => Math.max(0, p - 1))}
+                  >
+                    ◀ Previous
+                  </button>
+                  <span style={{ fontSize: "12px", color: "var(--text-muted)", fontFamily: "IBM Plex Mono" }}>
+                    Page {assetPage + 1} of {assetTotalPages}
+                  </span>
+                  <button 
+                    className="btn btn-ghost" 
+                    style={{ fontSize: "12px" }}
+                    disabled={assetPage >= assetTotalPages - 1} 
+                    onClick={() => setAssetPage(p => p + 1)}
+                  >
+                    Next ▶
+                  </button>
                 </div>
               </div>
             </div>
@@ -1381,77 +1934,131 @@ function Dashboard() {
           {/* ===== 7. LOG EXPLORER VIEW ===== */}
           {activeTab === "logs" && (
             <div>
-              <div style={{ textAlign: "left", marginBottom: "20px" }}>
-                <h2 style={{ fontSize: "20px", color: "var(--heading)", fontWeight: "800" }}>SIEM Log Explorer</h2>
-                <p style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "16px" }}>Query parsed system event logs</p>
-                
-                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                  <div className="search-box" style={{ flex: 1, minWidth: "280px" }}>
-                    <span>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="11" cy="11" r="8"/>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                      </svg>
-                    </span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", textAlign: "left", flexWrap: "wrap", gap: "10px" }}>
+                <div>
+                  <h2 style={{ fontSize: "20px", color: "var(--heading)", fontWeight: "800" }}>Enterprise SIEM Log Explorer</h2>
+                  <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>Ingest, search & query Windows, Sysmon, Syslog, Apache, Nginx, Firewall, VPN & SSH logs</p>
+                </div>
+                <button className="btn btn-ghost" style={{ fontSize: "12px" }} onClick={handleApplyRetentionPolicyApi}>
+                  🧹 Apply Retention Policy (90 Days)
+                </button>
+              </div>
+
+              {/* Filter Controls Bar */}
+              <div className="panel" style={{ marginBottom: "16px", padding: "12px 16px" }}>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+                  <div className="search-box" style={{ flex: 1, minWidth: "240px" }}>
+                    <span>🔍</span>
                     <input 
                       type="text" 
-                      placeholder="Query messages... (e.g. 'failed login')" 
-                      value={logSearch} 
-                      onChange={(e) => setLogSearch(e.target.value)} 
+                      placeholder="Query event logs... (e.g. 'failed login', 'powershell')" 
+                      value={siemLogQuery} 
+                      onChange={(e) => { setSiemLogQuery(e.target.value); setSiemLogPage(0); }} 
                     />
                   </div>
-                  <select className="form-select" style={{ width: "auto" }} value={logSeverity} onChange={(e) => setLogSeverity(e.target.value)}>
-                    <option value="">All Severities</option>
-                    <option value="CRITICAL">CRITICAL</option>
-                    <option value="ERROR">ERROR</option>
-                    <option value="WARNING">WARNING</option>
-                    <option value="INFO">INFO</option>
+
+                  <select 
+                    className="form-select" 
+                    style={{ width: "auto", fontSize: "12px" }} 
+                    value={siemLogSourceFilter} 
+                    onChange={(e) => { setSiemLogSourceFilter(e.target.value); setSiemLogPage(0); }}
+                  >
+                    <option value="">All Log Sources</option>
+                    <option value="WINDOWS_EVENT">Windows Event Log</option>
+                    <option value="SYSMON">Windows Sysmon</option>
+                    <option value="LINUX_SYSLOG">Linux Syslog</option>
+                    <option value="APACHE">Apache Web Server</option>
+                    <option value="NGINX">Nginx Reverse Proxy</option>
+                    <option value="FIREWALL">Palo Alto / DMZ Firewall</option>
+                    <option value="VPN">IPsec / OpenVPN</option>
+                    <option value="SSH">SSH Authentication</option>
                   </select>
-                  <select className="form-select" style={{ width: "auto" }} value={logSource} onChange={(e) => setLogSource(e.target.value)}>
-                    <option value="">All Sources</option>
-                    <option value="firewall">Firewall</option>
-                    <option value="auth">Auth Service</option>
-                    <option value="ids">IDS</option>
-                    <option value="endpoint">Endpoint</option>
+
+                  <select 
+                    className="form-select" 
+                    style={{ width: "auto", fontSize: "12px" }} 
+                    value={siemSeverityFilter} 
+                    onChange={(e) => { setSiemSeverityFilter(e.target.value); setSiemLogPage(0); }}
+                  >
+                    <option value="">All Severities</option>
+                    <option value="CRITICAL">Critical</option>
+                    <option value="ERROR">Error</option>
+                    <option value="WARN">Warning</option>
+                    <option value="INFO">Info</option>
                   </select>
                 </div>
               </div>
 
-              <div className="panel">
+              {/* SIEM Log Data Table */}
+              <div className="panel" style={{ padding: "0" }}>
                 <div className="table-container">
                   <table className="data-table">
                     <thead>
                       <tr>
                         <th>Timestamp</th>
-                        <th>Level</th>
-                        <th>Source</th>
-                        <th>Event Log Message</th>
-                        <th>Host IP</th>
+                        <th>Severity</th>
+                        <th>Log Source</th>
+                        <th>Event Code</th>
+                        <th>Host</th>
+                        <th>Parsed Event Message</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredLogs.map((log, idx) => (
-                        <tr key={idx}>
-                          <td style={{ fontFamily: "IBM Plex Mono", fontSize: "11px" }}>{log.timestamp}</td>
-                          <td>
-                            <span className={`badge ${log.level === "CRITICAL" ? "badge-critical" : log.level === "ERROR" ? "badge-high" : log.level === "WARNING" ? "badge-high" : "badge-info"}`}>
-                              {log.level}
-                            </span>
-                          </td>
-                          <td><code style={{ fontSize: "11px" }}>{log.source}</code></td>
-                          <td style={{ textAlign: "left", whiteSpace: "normal" }}>{log.message}</td>
-                          <td><code style={{ fontSize: "11px" }}>{log.ip}</code></td>
-                        </tr>
-                      ))}
-                      {filteredLogs.length === 0 && (
+                      {dbSiemLogs.length > 0 ? (
+                        dbSiemLogs.map((l) => (
+                          <tr key={l.id}>
+                            <td style={{ fontFamily: "IBM Plex Mono", fontSize: "11px" }}>
+                              {l.timestamp ? new Date(l.timestamp).toLocaleString() : "Just now"}
+                            </td>
+                            <td>
+                              <span className={`badge ${
+                                l.severity === "CRITICAL" ? "badge-critical" :
+                                l.severity === "ERROR" || l.severity === "WARN" ? "badge-high" : "badge-low"
+                              }`}>
+                                {l.severity}
+                              </span>
+                            </td>
+                            <td><code style={{ fontSize: "11px" }}>{l.logSource}</code></td>
+                            <td><code style={{ fontSize: "11px" }}>{l.eventCode || "N/A"}</code></td>
+                            <td><b>{l.host || "UNKNOWN-HOST"}</b></td>
+                            <td style={{ textAlign: "left", whiteSpace: "normal" }}>
+                              <div><b>{l.message}</b></div>
+                              {l.rawLog && <div style={{ fontSize: "10px", color: "var(--text-dim)", fontFamily: "IBM Plex Mono" }}>{l.rawLog}</div>}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
                         <tr>
-                          <td colSpan="5" style={{ textAlign: "center", color: "var(--text-dim)" }}>
-                            No log events match current query parameters.
+                          <td colSpan="6" style={{ textAlign: "center", color: "var(--text-dim)", padding: "30px" }}>
+                            No log events match query parameters.
                           </td>
                         </tr>
                       )}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Pagination Controls */}
+                <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <button 
+                    className="btn btn-ghost" 
+                    style={{ fontSize: "12px" }}
+                    disabled={siemLogPage <= 0} 
+                    onClick={() => setSiemLogPage(p => Math.max(0, p - 1))}
+                  >
+                    ◀ Previous
+                  </button>
+                  <span style={{ fontSize: "12px", color: "var(--text-muted)", fontFamily: "IBM Plex Mono" }}>
+                    Page {siemLogPage + 1} of {siemLogTotalPages}
+                  </span>
+                  <button 
+                    className="btn btn-ghost" 
+                    style={{ fontSize: "12px" }}
+                    disabled={siemLogPage >= siemLogTotalPages - 1} 
+                    onClick={() => setSiemLogPage(p => p + 1)}
+                  >
+                    Next ▶
+                  </button>
                 </div>
               </div>
             </div>
@@ -1986,7 +2593,7 @@ function Dashboard() {
             {modalType === "addAsset" && (
               <>
                 <div className="modal-header">
-                  <h3>Register System Host Asset</h3>
+                  <h3>Register Enterprise System Host Asset</h3>
                   <button className="modal-close" onClick={closeModal}>✕</button>
                 </div>
                 <div className="modal-body">
@@ -1999,6 +2606,24 @@ function Dashboard() {
                       value={newAsset.hostname} 
                       onChange={(e) => setNewAsset({ ...newAsset, hostname: e.target.value.toUpperCase() })} 
                     />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Asset Classification Type</label>
+                    <select 
+                      className="form-select" 
+                      value={newAsset.assetType || "DESKTOP"} 
+                      onChange={(e) => setNewAsset({ ...newAsset, assetType: e.target.value })}
+                    >
+                      <option value="DESKTOP">Desktop</option>
+                      <option value="LAPTOP">Laptop</option>
+                      <option value="WINDOWS_SERVER">Windows Server</option>
+                      <option value="LINUX_SERVER">Linux Server</option>
+                      <option value="VIRTUAL_MACHINE">Virtual Machine</option>
+                      <option value="ROUTER">Router</option>
+                      <option value="FIREWALL">Firewall</option>
+                      <option value="SWITCH">Switch</option>
+                      <option value="CLOUD_INSTANCE">Cloud Instance</option>
+                    </select>
                   </div>
                   <div className="form-group">
                     <label className="form-label">IP Address Mapping</label>
@@ -2020,6 +2645,7 @@ function Dashboard() {
                       <option value="Linux Ubuntu">Linux Ubuntu</option>
                       <option value="Linux Debian">Linux Debian</option>
                       <option value="Windows Server 2022">Windows Server 2022</option>
+                      <option value="Windows 11 Pro">Windows 11 Pro</option>
                       <option value="macOS Sequoia">macOS Sequoia</option>
                     </select>
                   </div>
@@ -2030,10 +2656,10 @@ function Dashboard() {
                       value={newAsset.criticality} 
                       onChange={(e) => setNewAsset({ ...newAsset, criticality: e.target.value })}
                     >
-                      <option value="Critical">Critical Business Node</option>
-                      <option value="High">High Priority Host</option>
-                      <option value="Medium">Medium Internal Host</option>
-                      <option value="Low">Low Audit Sandbox</option>
+                      <option value="CRITICAL">Critical Business Node</option>
+                      <option value="HIGH">High Priority Host</option>
+                      <option value="MEDIUM">Medium Internal Host</option>
+                      <option value="LOW">Low Audit Sandbox</option>
                     </select>
                   </div>
                   <div className="form-group">
@@ -2049,7 +2675,164 @@ function Dashboard() {
                 </div>
                 <div className="modal-footer">
                   <button className="btn btn-ghost" onClick={closeModal}>Cancel</button>
-                  <button className="btn btn-primary" onClick={handleAddAsset}>Register Asset</button>
+                  <button className="btn btn-primary" onClick={handleCreateAssetApi}>Register Asset</button>
+                </div>
+              </>
+            )}
+
+            {modalType === "assetDetails" && selectedAssetDetail && (
+              <>
+                <div className="modal-header" style={{ borderBottom: "1px solid var(--border)" }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <h3 style={{ margin: 0 }}>Asset Details: {selectedAssetDetail.hostname}</h3>
+                      <span className={`badge ${
+                        selectedAssetDetail.agentStatus === "ONLINE" ? "badge-green" :
+                        selectedAssetDetail.agentStatus === "OFFLINE" ? "badge-critical" : "badge-low"
+                      }`}>
+                        {selectedAssetDetail.agentStatus || "UNINSTALLED"}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
+                      {selectedAssetDetail.assetType} | {selectedAssetDetail.operatingSystem || "Linux"} | IP: {selectedAssetDetail.ipAddress || "127.0.0.1"}
+                    </p>
+                  </div>
+                  <button className="modal-close" onClick={closeModal}>✕</button>
+                </div>
+                <div className="modal-body" style={{ maxHeight: "70vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: "16px" }}>
+                  {/* System Specs Overview Grid */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "10px", background: "var(--surface-2)", padding: "12px", borderRadius: "var(--radius)", border: "1px solid var(--border)" }}>
+                    <div><span style={{ fontSize: "10px", color: "var(--text-dim)" }}>MAC Address</span><div style={{ fontSize: "12px", fontWeight: "bold", fontFamily: "IBM Plex Mono" }}>{selectedAssetDetail.macAddress || "N/A"}</div></div>
+                    <div><span style={{ fontSize: "10px", color: "var(--text-dim)" }}>Public IP</span><div style={{ fontSize: "12px", fontWeight: "bold", fontFamily: "IBM Plex Mono" }}>{selectedAssetDetail.publicIp || "N/A"}</div></div>
+                    <div><span style={{ fontSize: "10px", color: "var(--text-dim)" }}>CPU Cores</span><div style={{ fontSize: "12px", fontWeight: "bold" }}>{selectedAssetDetail.cpu || "4 Cores"}</div></div>
+                    <div><span style={{ fontSize: "10px", color: "var(--text-dim)" }}>Total RAM</span><div style={{ fontSize: "12px", fontWeight: "bold" }}>{selectedAssetDetail.ram || "16.0 GB"}</div></div>
+                    <div><span style={{ fontSize: "10px", color: "var(--text-dim)" }}>Total Disk</span><div style={{ fontSize: "12px", fontWeight: "bold" }}>{selectedAssetDetail.disk || "512.0 GB"}</div></div>
+                    <div><span style={{ fontSize: "10px", color: "var(--text-dim)" }}>Architecture</span><div style={{ fontSize: "12px", fontWeight: "bold" }}>{selectedAssetDetail.architecture || "x86_64"}</div></div>
+                    <div><span style={{ fontSize: "10px", color: "var(--text-dim)" }}>Owner / Dept</span><div style={{ fontSize: "12px", fontWeight: "bold" }}>{selectedAssetDetail.owner || "System"} ({selectedAssetDetail.department || "Infra"})</div></div>
+                    <div><span style={{ fontSize: "10px", color: "var(--text-dim)" }}>Last Seen Ping</span><div style={{ fontSize: "12px", fontWeight: "bold" }}>{selectedAssetDetail.lastSeen ? new Date(selectedAssetDetail.lastSeen).toLocaleTimeString() : "Just now"}</div></div>
+                  </div>
+
+                  {/* Sub-tabs inside Modal */}
+                  <div style={{ display: "flex", gap: "8px", borderBottom: "1px solid var(--border)", paddingBottom: "8px" }}>
+                    <button 
+                      className={`btn ${assetDetailSubTab === "processes" ? "btn-primary" : "btn-ghost"}`} 
+                      style={{ padding: "4px 10px", fontSize: "11px" }}
+                      onClick={() => setAssetDetailSubTab("processes")}
+                    >
+                      Running Processes ({selectedAssetDetail.processes?.length || 0})
+                    </button>
+                    <button 
+                      className={`btn ${assetDetailSubTab === "software" ? "btn-primary" : "btn-ghost"}`} 
+                      style={{ padding: "4px 10px", fontSize: "11px" }}
+                      onClick={() => setAssetDetailSubTab("software")}
+                    >
+                      Installed Software ({selectedAssetDetail.softwareList?.length || 0})
+                    </button>
+                    <button 
+                      className={`btn ${assetDetailSubTab === "network" ? "btn-primary" : "btn-ghost"}`} 
+                      style={{ padding: "4px 10px", fontSize: "11px" }}
+                      onClick={() => setAssetDetailSubTab("network")}
+                    >
+                      Network Adapters ({selectedAssetDetail.networkInterfaces?.length || 0})
+                    </button>
+                  </div>
+
+                  {/* Sub-tab 1: Processes */}
+                  {assetDetailSubTab === "processes" && (
+                    <div className="table-container">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Process Name</th>
+                            <th>PID</th>
+                            <th>CPU %</th>
+                            <th>Memory %</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedAssetDetail.processes && selectedAssetDetail.processes.length > 0 ? (
+                            selectedAssetDetail.processes.map((proc, idx) => (
+                              <tr key={idx}>
+                                <td><b>{proc.name}</b></td>
+                                <td><code style={{ fontSize: "11px" }}>{proc.pid}</code></td>
+                                <td style={{ fontFamily: "IBM Plex Mono" }}>{proc.cpuUsage}%</td>
+                                <td style={{ fontFamily: "IBM Plex Mono" }}>{proc.memoryUsage}%</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr><td colSpan="4" style={{ textAlign: "center", color: "var(--text-dim)", padding: "16px" }}>No running processes reported by agent yet.</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Sub-tab 2: Software */}
+                  {assetDetailSubTab === "software" && (
+                    <div className="table-container">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Application Name</th>
+                            <th>Version</th>
+                            <th>Publisher</th>
+                            <th>Install Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedAssetDetail.softwareList && selectedAssetDetail.softwareList.length > 0 ? (
+                            selectedAssetDetail.softwareList.map((soft, idx) => (
+                              <tr key={idx}>
+                                <td><b>{soft.name}</b></td>
+                                <td><code style={{ fontSize: "11px" }}>{soft.version || "1.0"}</code></td>
+                                <td>{soft.publisher || "Vendor"}</td>
+                                <td style={{ fontSize: "11px" }}>{soft.installDate || "N/A"}</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr><td colSpan="4" style={{ textAlign: "center", color: "var(--text-dim)", padding: "16px" }}>No installed software reported by agent yet.</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Sub-tab 3: Network */}
+                  {assetDetailSubTab === "network" && (
+                    <div className="table-container">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Interface Name</th>
+                            <th>IP Address</th>
+                            <th>MAC Address</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedAssetDetail.networkInterfaces && selectedAssetDetail.networkInterfaces.length > 0 ? (
+                            selectedAssetDetail.networkInterfaces.map((net, idx) => (
+                              <tr key={idx}>
+                                <td><b>{net.interfaceName}</b></td>
+                                <td><code style={{ fontSize: "11px" }}>{net.ipAddress || "127.0.0.1"}</code></td>
+                                <td><code style={{ fontSize: "11px" }}>{net.macAddress || "N/A"}</code></td>
+                                <td>
+                                  <span className={`badge ${net.status === "UP" ? "badge-green" : "badge-critical"}`}>
+                                    {net.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr><td colSpan="4" style={{ textAlign: "center", color: "var(--text-dim)", padding: "16px" }}>No network interfaces reported by agent yet.</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn-primary" onClick={closeModal}>Close Inspector</button>
                 </div>
               </>
             )}

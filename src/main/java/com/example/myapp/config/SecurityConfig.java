@@ -28,6 +28,11 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/agent/**").permitAll()
+                .requestMatchers("/api/vulnerabilities/**").permitAll()
+                .requestMatchers("/api/network-discovery/**").permitAll()
+                .requestMatchers("/api/siem/logs/**").permitAll()
+                .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .anyRequest().authenticated()

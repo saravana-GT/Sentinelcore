@@ -7,4 +7,5 @@ import java.util.UUID;
 
 public interface AlertRepository extends JpaRepository<Alert, UUID> {
     List<Alert> findAllByOrderByCreatedAtDesc();
+    long countBySeverity(String severity);
 }
