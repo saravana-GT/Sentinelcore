@@ -4,6 +4,8 @@ import com.example.myapp.playbook.entity.Playbook;
 import com.example.myapp.playbook.entity.PlaybookStep;
 import com.example.myapp.playbook.enums.ActionType;
 import com.example.myapp.playbook.repository.PlaybookRepository;
+import com.example.myapp.model.Alert;
+import com.example.myapp.repository.AlertRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -22,9 +24,11 @@ public class DataSeeder implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
 
     private final PlaybookRepository playbookRepository;
+    private final AlertRepository alertRepository;
 
-    public DataSeeder(PlaybookRepository playbookRepository) {
+    public DataSeeder(PlaybookRepository playbookRepository, AlertRepository alertRepository) {
         this.playbookRepository = playbookRepository;
+        this.alertRepository = alertRepository;
     }
 
     @Override
@@ -32,14 +36,53 @@ public class DataSeeder implements CommandLineRunner {
     public void run(String... args) {
         if (playbookRepository.count() > 0) {
             log.info("DataSeeder: playbooks already present — skipping seed.");
-            return;
+        } else {
+            playbookRepository.saveAll(List.of(
+                    buildMalwareResponsePlaybook(),
+                    buildPhishingResponsePlaybook(),
+                    buildSuspiciousLoginPlaybook()
+            ));
+            log.info("DataSeeder: 3 sample playbooks inserted successfully.");
         }
-        playbookRepository.saveAll(List.of(
-                buildMalwareResponsePlaybook(),
-                buildPhishingResponsePlaybook(),
-                buildSuspiciousLoginPlaybook()
-        ));
-        log.info("DataSeeder: 3 sample playbooks inserted successfully.");
+
+        if (alertRepository.count() == 0) {
+            seedAlerts();
+        }
+    }
+
+    private void seedAlerts() {
+        Alert alert1 = new Alert();
+        alert1.setTitle("Tor Node outbound traffic blocked");
+        alert1.setDescription("Outbound connection to Tor exit node blocked on DMZ-WAF-01");
+        alert1.setSeverity("CRITICAL");
+        alert1.setSource("firewall");
+
+        Alert alert2 = new Alert();
+        alert2.setTitle("Failed password login");
+        alert2.setDescription("Multiple failed SSH login attempts detected on PROD-DB-01");
+        alert2.setSeverity("HIGH");
+        alert2.setSource("auth");
+
+        Alert alert3 = new Alert();
+        alert3.setTitle("File Integrity Monitor alert");
+        alert3.setDescription("/etc/shadow configuration file was modified by unauthorized user");
+        alert3.setSeverity("CRITICAL");
+        alert3.setSource("endpoint");
+
+        Alert alert4 = new Alert();
+        alert4.setTitle("Network Scan blocked");
+        alert4.setDescription("Port scanning attempt from WAN blocked by internal IPS rule");
+        alert4.setSeverity("MEDIUM");
+        alert4.setSource("ids");
+
+        Alert alert5 = new Alert();
+        alert5.setTitle("New promiscuous mode interface");
+        alert5.setDescription("Network interface eth0 entered promiscuous mode on CORP-DC-01");
+        alert5.setSeverity("HIGH");
+        alert5.setSource("endpoint");
+
+        alertRepository.saveAll(List.of(alert1, alert2, alert3, alert4, alert5));
+        log.info("DataSeeder: 5 sample alerts inserted successfully.");
     }
 
     private Playbook buildMalwareResponsePlaybook() {

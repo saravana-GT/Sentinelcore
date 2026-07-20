@@ -344,8 +344,18 @@ function Dashboard() {
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            if (data.type === "DASHBOARD_LIVE_METRICS" && data.stats) {
-              setLiveMetrics(data.stats);
+            if (data.type === "DASHBOARD_LIVE_METRICS") {
+              if (data.stats) {
+                setLiveMetrics(data.stats);
+              }
+              if (data.latestAlerts) {
+                setLiveFeed(data.latestAlerts.map(alert => ({
+                  text: `${alert.title}: ${alert.description || ""}`,
+                  source: alert.source ? alert.source.toLowerCase() : "system",
+                  time: alert.createdAt ? alert.createdAt.split("T")[1]?.substring(0, 8) || "Live" : "Live",
+                  type: alert.severity ? alert.severity.toLowerCase() : "info"
+                })));
+              }
             }
           } catch (err) {
             console.error("Error parsing WebSocket telemetry:", err);
@@ -765,36 +775,10 @@ function Dashboard() {
     }
   }, [activeTab]);
 
-  // Live feed stream simulation
+  // Live feed stream simulation is now handled via WebSocket from the database alerts.
   useEffect(() => {
-    if (!autoRefresh) return;
-
-    const messages = [
-      "Tor Node outbound traffic blocked on DMZ-WAF-01",
-      "Failed password login on PROD-DB-01",
-      "File Integrity Monitor alert: /etc/shadow modified",
-      "Network Scan blocked by internal IPS rule",
-      "New network interface entered promiscuous mode on CORP-DC-01",
-      "Authorized connection to external AWS bucket approved"
-    ];
-    const sources = ["firewall", "auth", "ids", "endpoint"];
-    const types = ["info", "warning", "error"];
-
-    const interval = setInterval(() => {
-      const randomMsg = messages[Math.floor(Math.random() * messages.length)];
-      const randomSrc = sources[Math.floor(Math.random() * sources.length)];
-      const randomType = types[Math.floor(Math.random() * types.length)];
-      const now = new Date();
-      const timeStr = now.toTimeString().split(" ")[0];
-
-      setLiveFeed((prev) => [
-        { text: randomMsg, source: randomSrc, time: timeStr, type: randomType },
-        ...prev.slice(0, 9)
-      ]);
-    }, refreshRate * 1000);
-
-    return () => clearInterval(interval);
-  }, [autoRefresh, refreshRate]);
+    // Left empty. Real-time alerts are populated by the WebSocket client onmessage handler.
+  }, []);
 
   // Log audit helper
   const addAuditLog = (actionText) => {
