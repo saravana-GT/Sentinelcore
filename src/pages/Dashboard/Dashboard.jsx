@@ -1518,17 +1518,24 @@ function Dashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {assets.slice(0, 4).map((a, idx) => (
+                        {dbAssets.filter(a => a.riskScore !== null && a.riskScore !== undefined).sort((x, y) => y.riskScore - x.riskScore).slice(0, 4).map((a, idx) => (
                           <tr key={idx}>
-                            <td><b>{a.hostname}</b><br/><span style={{ fontSize: "11px", color: "var(--text-dim)" }}>{a.ip}</span></td>
-                            <td>{a.os}</td>
+                            <td><b>{a.hostname}</b><br/><span style={{ fontSize: "11px", color: "var(--text-dim)" }}>{a.ipAddress || "No IP"}</span></td>
+                            <td>{a.operatingSystem || "Unknown OS"}</td>
                             <td>
                               <span className={`badge ${a.riskScore > 75 ? "badge-critical" : "badge-high"}`}>
-                                {a.riskScore}% Risk
+                                {Math.round(a.riskScore)}% Risk
                               </span>
                             </td>
                           </tr>
                         ))}
+                        {dbAssets.filter(a => a.riskScore !== null && a.riskScore !== undefined).length === 0 && (
+                          <tr>
+                            <td colSpan="3" style={{ textAlign: "center", padding: "20px", color: "var(--text-dim)" }}>
+                              No vulnerable targets identified in database.
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
