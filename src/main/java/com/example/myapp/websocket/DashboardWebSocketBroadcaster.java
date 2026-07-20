@@ -31,6 +31,7 @@ public class DashboardWebSocketBroadcaster {
     private final AssetMetricRepository assetMetricRepository;
     private final ObjectMapper objectMapper;
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     @Scheduled(fixedRate = 3000)
     public void broadcastDashboardStats() {
         if (!webSocketHandler.hasActiveSessions()) {
