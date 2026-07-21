@@ -1689,38 +1689,12 @@ function Dashboard() {
                           </tr>
                         ))
                       ) : (
-                        alerts.map((al) => (
-                        <tr key={al.id}>
-                          <td><b>{al.id}</b></td>
-                          <td>{al.name}</td>
-                          <td>
-                            <span className={`badge ${al.severity === "CRITICAL" ? "badge-critical" : al.severity === "HIGH" ? "badge-high" : "badge-medium"}`}>
-                              {al.severity}
-                            </span>
-                          </td>
-                          <td><code style={{ fontSize: "11px" }}>{al.source}</code></td>
-                          <td style={{ fontFamily: "IBM Plex Mono", fontWeight: "bold" }}>{al.count}</td>
-                          <td>{al.firstSeen}</td>
-                          <td>
-                            <span className={`badge ${al.status === "Open" ? "badge-critical" : al.status === "Triaged" ? "badge-high" : "badge-low"}`}>
-                              {al.status}
-                            </span>
-                          </td>
-                          <td>
-                            {al.status === "Open" && (
-                              <button className="btn btn-ghost" style={{ padding: "4px 8px", fontSize: "11px", marginRight: "4px" }} onClick={() => acknowledgeAlert(al.id)}>
-                                Acknowledge
-                              </button>
-                            )}
-                            {al.status !== "Resolved" && (
-                              <button className="btn btn-primary" style={{ padding: "4px 8px", fontSize: "11px", background: "var(--green)", borderColor: "var(--green)" }} onClick={() => resolveAlert(al.id)}>
-                                Resolve
-                              </button>
-                            )}
-                            {al.status === "Resolved" && <span style={{ color: "var(--text-dim)", fontSize: "11px" }}>Closed</span>}
+                        <tr>
+                          <td colSpan="8" style={{ textAlign: "center", color: "var(--text-dim)", padding: "30px" }}>
+                            No active security alerts in database. Run a security test or launch the endpoint agent to stream live triggers.
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
