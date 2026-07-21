@@ -137,6 +137,7 @@ function Dashboard() {
     avgDisk: 48.0
   });
   const [wsConnected, setWsConnected] = useState(false);
+  const [incidentTimeframe, setIncidentTimeframe] = useState("30D");
 
   // Asset Management API States
   const [dbAssets, setDbAssets] = useState([]);
@@ -1407,12 +1408,16 @@ function Dashboard() {
                   <div className="panel-header">
                     <div>
                       <div className="panel-title">Security Incidents Over Time</div>
-                      <div className="panel-subtitle">Daily count - Last 30 days</div>
+                      <div className="panel-subtitle">
+                        {incidentTimeframe === "30D" && "Daily count - Last 30 days"}
+                        {incidentTimeframe === "7D" && "Daily count - Last 7 days"}
+                        {incidentTimeframe === "24H" && "Hourly distribution - Last 24 hours (Live Ticks)"}
+                      </div>
                     </div>
                     <div className="panel-actions">
-                      <button className="panel-action active">30D</button>
-                      <button className="panel-action">7D</button>
-                      <button className="panel-action">24H</button>
+                      <button className={`panel-action ${incidentTimeframe === "30D" ? "active" : ""}`} onClick={() => setIncidentTimeframe("30D")}>30D</button>
+                      <button className={`panel-action ${incidentTimeframe === "7D" ? "active" : ""}`} onClick={() => setIncidentTimeframe("7D")}>7D</button>
+                      <button className={`panel-action ${incidentTimeframe === "24H" ? "active" : ""}`} onClick={() => setIncidentTimeframe("24H")}>24H</button>
                     </div>
                   </div>
                   <div className="panel-body" style={{ minHeight: "220px" }}>
@@ -1433,18 +1438,58 @@ function Dashboard() {
                       <text x="30" y="63" fill="var(--text-dim)" fontSize="10" textAnchor="end" fontFamily="IBM Plex Mono">10</text>
                       
                       {/* Area */}
-                      <path d="M40,120 L80,110 L120,90 L160,100 L200,70 L240,80 L280,50 L320,60 L360,30 L400,40 L440,20 L480,35 L520,15 L560,25 L560,140 L40,140Z" fill="url(#chartGrad)" />
+                      <path d={
+                        incidentTimeframe === "30D" ? "M40,120 L80,110 L120,90 L160,100 L200,70 L240,80 L280,50 L320,60 L360,30 L400,40 L440,20 L480,35 L520,15 L560,25 L560,140 L40,140Z" :
+                        incidentTimeframe === "7D" ? "M40,130 L120,100 L200,120 L280,70 L360,90 L440,40 L520,60 L520,140 L40,140Z" :
+                        "M40,140 L120,110 L200,60 L280,85 L360,45 L440,70 L520,25 L520,140 L40,140Z"
+                      } fill="url(#chartGrad)" />
+
                       {/* Line */}
-                      <polyline className="chart-draw-line" points="40,120 80,110 120,90 160,100 200,70 240,80 280,50 320,60 360,30 400,40 440,20 480,35 520,15 560,25" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      <polyline className="chart-draw-line" points={
+                        incidentTimeframe === "30D" ? "40,120 80,110 120,90 160,100 200,70 240,80 280,50 320,60 360,30 400,40 440,20 480,35 520,15 560,25" :
+                        incidentTimeframe === "7D" ? "40,130 120,100 200,120 280,70 360,90 440,40 520,60" :
+                        "40,140 120,110 200,60 280,85 360,45 440,70 520,25"
+                      } fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       
-                      <circle cx="280" cy="50" r="4" fill="var(--purple)" stroke="var(--surface)" strokeWidth="2" />
-                      <circle cx="440" cy="20" r="4" fill="var(--purple)" stroke="var(--surface)" strokeWidth="2" />
-                      
-                      <text x="40" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">W1</text>
-                      <text x="160" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">W2</text>
-                      <text x="280" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">W3</text>
-                      <text x="400" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">W4</text>
-                      <text x="520" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">W5</text>
+                      {incidentTimeframe === "30D" && (
+                        <>
+                          <circle cx="280" cy="50" r="4" fill="var(--purple)" stroke="var(--surface)" strokeWidth="2" />
+                          <circle cx="440" cy="20" r="4" fill="var(--purple)" stroke="var(--surface)" strokeWidth="2" />
+                          <text x="40" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">W1</text>
+                          <text x="160" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">W2</text>
+                          <text x="280" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">W3</text>
+                          <text x="400" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">W4</text>
+                          <text x="520" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">W5</text>
+                        </>
+                      )}
+
+                      {incidentTimeframe === "7D" && (
+                        <>
+                          <circle cx="280" cy="70" r="4" fill="var(--purple)" stroke="var(--surface)" strokeWidth="2" />
+                          <circle cx="440" cy="40" r="4" fill="var(--purple)" stroke="var(--surface)" strokeWidth="2" />
+                          <text x="40" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">Mon</text>
+                          <text x="120" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">Tue</text>
+                          <text x="200" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">Wed</text>
+                          <text x="280" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">Thu</text>
+                          <text x="360" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">Fri</text>
+                          <text x="440" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">Sat</text>
+                          <text x="520" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">Sun</text>
+                        </>
+                      )}
+
+                      {incidentTimeframe === "24H" && (
+                        <>
+                          <circle cx="200" cy="60" r="4" fill="var(--purple)" stroke="var(--surface)" strokeWidth="2" />
+                          <circle cx="520" cy="25" r="4" fill="var(--green)" stroke="var(--surface)" strokeWidth="2" />
+                          <text x="40" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">00:00</text>
+                          <text x="120" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">04:00</text>
+                          <text x="200" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">08:00</text>
+                          <text x="280" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">12:00</text>
+                          <text x="360" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">16:00</text>
+                          <text x="440" y="155" fill="var(--text-dim)" fontSize="10" textAnchor="middle" fontFamily="IBM Plex Mono">20:00</text>
+                          <text x="520" y="155" fill="var(--green)" fontSize="10" textAnchor="middle" fontWeight="bold" fontFamily="IBM Plex Mono">Live</text>
+                        </>
+                      )}
                     </svg>
                   </div>
                 </div>
