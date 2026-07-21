@@ -167,6 +167,7 @@ function Dashboard() {
   const [siemLogQuery, setSiemLogQuery] = useState("");
   const [siemLogSourceFilter, setSiemLogSourceFilter] = useState("");
   const [siemSeverityFilter, setSiemSeverityFilter] = useState("");
+  const [dbAlerts, setDbAlerts] = useState([]);
 
   // System Settings
   const [mfaEnabled, setMfaEnabled] = useState(false);
@@ -551,7 +552,22 @@ function Dashboard() {
     if (activeTab === "vulnerabilities") {
       fetchDbVulnerabilities();
     }
+    if (activeTab === "alerts") {
+      fetchDbAlerts();
+    }
   }, [activeTab, vulnSeverityFilter, vulnPatchFilter]);
+
+  const fetchDbAlerts = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/alerts`);
+      if (res.ok) {
+        const data = await res.json();
+        setDbAlerts(data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching database alerts:", err);
+    }
+  };
 
   const handleRunCveScanApi = async () => {
     setIsScanning(true);
@@ -1685,7 +1701,36 @@ function Dashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {alerts.map((al) => (
+                      {dbAlerts.length > 0 ? (
+                        dbAlerts.map((al) => (
+                          <tr key={al.id}>
+                            <td><code style={{ fontSize: "11px" }}>AL-{al.id}</code></td>
+                            <td style={{ textAlign: "left" }}>
+                              <b>{al.title}</b>
+                              {al.description && <div style={{ fontSize: "11px", color: "var(--text-dim)" }}>{al.description}</div>}
+                            </td>
+                            <td>
+                              <span className={`badge ${al.severity === "CRITICAL" ? "badge-critical" : "badge-high"}`}>
+                                {al.severity}
+                              </span>
+                            </td>
+                            <td><code style={{ fontSize: "11px" }}>{al.source || "endpoint"}</code></td>
+                            <td>1</td>
+                            <td style={{ fontSize: "11px" }}>{al.createdAt ? new Date(al.createdAt).toLocaleTimeString() : "Just now"}</td>
+                            <td>
+                              <span className={`badge ${al.status === "OPEN" ? "badge-critical" : "badge-green"}`}>
+                                {al.status || "OPEN"}
+                              </span>
+                            </td>
+                            <td>
+                              <button className="btn btn-ghost" style={{ padding: "2px 6px", fontSize: "11px" }} onClick={() => showToast("success", `Acknowledged alert AL-${al.id}`)}>
+                                Acknowledge
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        alerts.map((al) => (
                         <tr key={al.id}>
                           <td><b>{al.id}</b></td>
                           <td>{al.name}</td>
