@@ -1732,7 +1732,35 @@ function Dashboard() {
                   <h2 style={{ fontSize: "20px", color: "var(--heading)", fontWeight: "800" }}>Threat Intelligence Feed</h2>
                   <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>Library of indicators of compromise (IOCs) registered on watchlists</p>
                 </div>
-                <button className="btn btn-primary" onClick={() => { showToast("success", "Threat feed synced: 3 new watchlist hashes added."); addAuditLog("Synchronized global threat feeds."); }}>
+                <button className="btn btn-primary" onClick={() => {
+                  showToast("success", "Threat feed synced: Malicious IoC detected on host SPIDEY!");
+                  addAuditLog("Synchronized global threat feeds. Flagged C2 IP 185.220.101.4 on host SPIDEY.");
+                  
+                  // Generate automated incident card
+                  const newInc = {
+                    id: `INC-00${incidents.length + 1}`,
+                    title: "Threat Intel Match: Malicious C2 IP 185.220.101.4 Flagged on SPIDEY",
+                    severity: "P1",
+                    status: "Open",
+                    assignee: "saroo",
+                    assigneeColor: "#b91c1c",
+                    sla: "1h 30m",
+                    created: new Date().toLocaleTimeString()
+                  };
+                  setIncidents(prev => [newInc, ...prev]);
+
+                  // Generate dynamic event stream alert
+                  const newAlert = {
+                    id: Date.now(),
+                    title: "Threat Intel Alert: Malicious C2 IP Flagged",
+                    description: "Outbound connection attempt to malicious C2 IP 185.220.101.4 detected on host SPIDEY",
+                    severity: "CRITICAL",
+                    source: "Threat Intel",
+                    status: "OPEN",
+                    createdAt: new Date().toISOString()
+                  };
+                  setEventStream(prev => [newAlert, ...prev]);
+                }}>
                   Sync Global Feed
                 </button>
               </div>
