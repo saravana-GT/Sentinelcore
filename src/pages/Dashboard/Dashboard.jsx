@@ -41,49 +41,12 @@ function Dashboard() {
   const [newRule, setNewRule] = useState({ name: "", severity: "HIGH", source: "ids", msgMatch: "" });
 
   // Data Stores
-  const [incidents, setIncidents] = useState([
-    { id: "INC-001", title: "Ransomware detected on PROD-DB-01", severity: "P1", status: "Open", assignee: "MK", assigneeColor: "#b91c1c", sla: "2h 15m", created: "2026-07-10 09:23" },
-    { id: "INC-002", title: "Suspicious lateral movement in DMZ", severity: "P1", status: "Open", assignee: "JC", assigneeColor: "#c27a1b", sla: "1h 40m", created: "2026-07-10 10:05" },
-    { id: "INC-003", title: "Brute force attack on VPN gateway", severity: "P2", status: "Triaged", assignee: "SA", assigneeColor: "#287a43", sla: "4h 30m", created: "2026-07-10 08:12" },
-    { id: "INC-004", title: "Data exfiltration attempt via DNS tunneling", severity: "P1", status: "Triaged", assignee: "MK", assigneeColor: "#b91c1c", sla: "0h 45m", created: "2026-07-10 07:58" },
-    { id: "INC-005", title: "Unauthorized admin account creation", severity: "P2", status: "In Progress", assignee: "JC", assigneeColor: "#c27a1b", sla: "6h 20m", created: "2026-07-10 08:50" },
-    { id: "INC-006", title: "Phishing campaign targeting HR dept", severity: "P3", status: "In Progress", assignee: "SA", assigneeColor: "#287a43", sla: "24h 0m", created: "2026-07-10 06:10" },
-    { id: "INC-007", title: "Outbound connection to known C2 server", severity: "P1", status: "Resolved", assignee: "SA", assigneeColor: "#287a43", sla: "Resolved", created: "2026-07-09 23:45" },
-    { id: "INC-008", title: "SQL injection attempt blocked by WAF", severity: "P3", status: "Resolved", assignee: "JC", assigneeColor: "#c27a1b", sla: "Resolved", created: "2026-07-09 20:30" }
-  ]);
-
-  const [alerts, setAlerts] = useState([
-    { id: "AL-928", name: "High rate of outbound packets", severity: "CRITICAL", source: "firewall", count: 421, firstSeen: "10m ago", status: "Open" },
-    { id: "AL-927", name: "EDR alert: LSASS process memory dump", severity: "CRITICAL", source: "endpoint", count: 1, firstSeen: "18m ago", status: "Triaged" },
-    { id: "AL-926", name: "Failed logins exceed threshold (Brute Force)", severity: "HIGH", source: "auth", count: 18, firstSeen: "25m ago", status: "Open" },
-    { id: "AL-925", name: "Tor exit node connection", severity: "HIGH", source: "ids", count: 3, firstSeen: "1h ago", status: "Resolved" },
-    { id: "AL-924", name: "Suspicious PowerShell base64 command", severity: "MEDIUM", source: "endpoint", count: 2, firstSeen: "2h ago", status: "Open" },
-    { id: "AL-923", name: "Internal Port scan detected", severity: "MEDIUM", source: "firewall", count: 87, firstSeen: "3h ago", status: "Open" }
-  ]);
-
-  const [threats, setThreats] = useState([
-    { value: "185.220.101.4", type: "IP Address (Tor Exit)", severity: "HIGH", date: "2026-07-10" },
-    { value: "malware-c2-xyz.ru", type: "Domain Name (C2)", severity: "CRITICAL", date: "2026-07-10" },
-    { value: "a4f9e8023c10b7f8c859d02c3882711a37c1df03", type: "File Hash (SHA256)", severity: "CRITICAL", date: "2026-07-10" },
-    { value: "45.89.230.12", type: "IP Address (Brute Force Source)", severity: "MEDIUM", date: "2026-07-09" }
-  ]);
-
-  const [assets, setAssets] = useState([
-    { hostname: "PROD-DB-01", ip: "10.0.3.50", os: "Linux Ubuntu", criticality: "Critical", owner: "DBA Team", riskScore: 92, status: "Patched", lastSeen: "5m ago" },
-    { hostname: "PROD-APP-01", ip: "10.0.3.51", os: "Linux Ubuntu", criticality: "High", owner: "App Team", riskScore: 65, status: "Patched", lastSeen: "2m ago" },
-    { hostname: "CORP-DC-01", ip: "10.2.1.10", os: "Win Server 2022", criticality: "Critical", owner: "IT Ops", riskScore: 78, status: "Out of Date", lastSeen: "10m ago" },
-    { hostname: "DMZ-WAF-01", ip: "10.0.1.10", os: "Linux Debian", criticality: "High", owner: "NetSec", riskScore: 45, status: "Patched", lastSeen: "Active" },
-    { hostname: "STG-WEB-02", ip: "10.0.5.21", os: "Linux Debian", criticality: "Medium", owner: "QA Team", riskScore: 28, status: "Patched", lastSeen: "1h ago" }
-  ]);
-
-  // SIEM logs database
-  const [logs, setLogs] = useState([
-    { timestamp: "11:54:12", level: "INFO", source: "firewall", message: "Outbound connection allowed to 8.8.8.8", ip: "10.0.3.51" },
-    { timestamp: "11:53:05", level: "WARNING", source: "auth", message: "Failed login attempt for user 'admin'", ip: "192.168.1.18" },
-    { timestamp: "11:51:24", level: "ERROR", source: "ids", message: "IDS Rule match: ET Web Attacks SQL injection", ip: "45.89.230.12" },
-    { timestamp: "11:49:50", level: "INFO", source: "endpoint", message: "Process started: cmd.exe spawning powershell.exe", ip: "10.2.1.10" },
-    { timestamp: "11:47:01", level: "CRITICAL", source: "endpoint", message: "Ransomware signature match detected on sector C:", ip: "10.0.3.50" }
-  ]);
+  // Data Stores (Strictly Real Database & Live Telemetry Driven)
+  const [incidents, setIncidents] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [threats, setThreats] = useState([]);
+  const [assets, setAssets] = useState([]);
+  const [logs, setLogs] = useState([]);
 
   // SIEM Filter States
   const [logSearch, setLogSearch] = useState("");
@@ -97,11 +60,7 @@ function Dashboard() {
   const [sessions, setSessions] = useState([]);
 
   // Live feed updates
-  const [liveFeed, setLiveFeed] = useState([
-    { text: "Firewall allowed outbound HTTP from PROD-APP-01", source: "firewall", time: "11:54:30", type: "info" },
-    { text: "Failed SSH login on CORP-DC-01 (Attempt 3)", source: "auth", time: "11:53:15", type: "warning" },
-    { text: "IDS Alert: Port scan detected from external WAN IP", source: "ids", time: "11:52:00", type: "warning" }
-  ]);
+  const [liveFeed, setLiveFeed] = useState([]);
 
   // Vulnerability scan simulation states
   const [isScanning, setIsScanning] = useState(false);
@@ -2965,7 +2924,7 @@ function Dashboard() {
 
                   {/* Sub-tab 1: Processes */}
                   {assetDetailSubTab === "processes" && (
-                    <div className="table-container">
+                    <div className="table-container" style={{ maxHeight: "320px", overflowY: "auto", minHeight: "200px" }}>
                       <table className="data-table">
                         <thead>
                           <tr>
@@ -2995,7 +2954,7 @@ function Dashboard() {
 
                   {/* Sub-tab 2: Software */}
                   {assetDetailSubTab === "software" && (
-                    <div className="table-container">
+                    <div className="table-container" style={{ maxHeight: "320px", overflowY: "auto", minHeight: "200px" }}>
                       <table className="data-table">
                         <thead>
                           <tr>
