@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Sidebar.css";
 
-function Sidebar({ activeTab, setActiveTab }) {
+function Sidebar({ activeTab, setActiveTab, counts = {} }) {
   const navigate = useNavigate();
   const [username, setUsername] = useState("Sarah Anderson");
   const [role, setRole] = useState("ADMIN");
@@ -80,7 +80,7 @@ function Sidebar({ activeTab, setActiveTab }) {
               <line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
           </span> Incidents
-          <span className="nav-badge badge-red">12</span>
+          {counts.incidents > 0 && <span className="nav-badge badge-red">{counts.incidents}</span>}
         </button>
         <button
           className={`nav-item ${activeTab === "alerts" ? "active" : ""}`}
@@ -92,7 +92,7 @@ function Sidebar({ activeTab, setActiveTab }) {
               <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
           </span> Alerts
-          <span className="nav-badge badge-amber">34</span>
+          {counts.alerts > 0 && <span className="nav-badge badge-amber">{counts.alerts}</span>}
         </button>
         <button
           className={`nav-item ${activeTab === "threats" ? "active" : ""}`}
@@ -105,7 +105,7 @@ function Sidebar({ activeTab, setActiveTab }) {
               <circle cx="12" cy="12" r="2"/>
             </svg>
           </span> Threat Intel
-          <span className="nav-badge badge-red">8</span>
+          {counts.threats > 0 && <span className="nav-badge badge-red">{counts.threats}</span>}
         </button>
 
         <div className="nav-section">Security</div>
@@ -118,7 +118,7 @@ function Sidebar({ activeTab, setActiveTab }) {
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
           </span> Vulnerabilities
-          <span className="nav-badge badge-amber">156</span>
+          {counts.vulnerabilities > 0 && <span className="nav-badge badge-amber">{counts.vulnerabilities}</span>}
         </button>
         <button
           className={`nav-item ${activeTab === "assets" ? "active" : ""}`}
@@ -131,7 +131,7 @@ function Sidebar({ activeTab, setActiveTab }) {
               <line x1="12" y1="17" x2="12" y2="21"/>
             </svg>
           </span> Assets
-          <span className="nav-badge badge-blue">89</span>
+          {counts.assets > 0 && <span className="nav-badge badge-blue">{counts.assets}</span>}
         </button>
         <button
           className={`nav-item ${activeTab === "logs" ? "active" : ""}`}

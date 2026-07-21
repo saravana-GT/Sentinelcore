@@ -310,12 +310,21 @@ function Dashboard() {
                 setLiveMetrics(data.stats);
               }
               if (data.latestAlerts) {
-                setLiveFeed(data.latestAlerts.map(alert => ({
-                  text: `${alert.title}: ${alert.description || ""}`,
-                  source: alert.source ? alert.source.toLowerCase() : "system",
-                  time: alert.createdAt ? alert.createdAt.split("T")[1]?.substring(0, 8) || "Live" : "Live",
-                  type: alert.severity ? alert.severity.toLowerCase() : "info"
-                })));
+                setLiveFeed(data.latestAlerts.map(alert => {
+                  let timeStr = "Live";
+                  if (alert.createdAt) {
+                    let iso = alert.createdAt;
+                    if (typeof iso === "string" && !iso.endsWith("Z") && !iso.includes("+")) iso += "Z";
+                    const d = new Date(iso);
+                    timeStr = isNaN(d.getTime()) ? alert.createdAt : d.toLocaleTimeString();
+                  }
+                  return {
+                    text: `${alert.title}: ${alert.description || ""}`,
+                    source: alert.source ? alert.source.toLowerCase() : "system",
+                    time: timeStr,
+                    type: alert.severity ? alert.severity.toLowerCase() : "info"
+                  };
+                }));
               }
             }
           } catch (err) {
@@ -1289,7 +1298,17 @@ function Dashboard() {
   return (
     <div className="app-layout">
       {/* SIDEBAR NAVIGATION */}
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        counts={{
+          incidents: incidents.length,
+          alerts: dbAlerts.length,
+          threats: threats.length,
+          vulnerabilities: dbVulnerabilities.length,
+          assets: dbAssets.length
+        }}
+      />
 
       {/* MAIN CONTAINER */}
       <div className="main-content">
