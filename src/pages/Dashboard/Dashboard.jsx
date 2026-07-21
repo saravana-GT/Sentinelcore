@@ -517,11 +517,9 @@ function Dashboard() {
   };
 
   useEffect(() => {
+    fetchDbAlerts();
     if (activeTab === "vulnerabilities") {
       fetchDbVulnerabilities();
-    }
-    if (activeTab === "alerts") {
-      fetchDbAlerts();
     }
   }, [activeTab, vulnSeverityFilter, vulnPatchFilter]);
 
@@ -531,6 +529,28 @@ function Dashboard() {
       if (res.ok) {
         const data = await res.json();
         setDbAlerts(data || []);
+
+        // Automatically create Incident cards for Critical and High alerts!
+        if (Array.isArray(data) && data.length > 0) {
+          const autoIncidents = data
+            .filter(a => a.severity === "CRITICAL" || a.severity === "HIGH")
+            .map(a => ({
+              id: `INC-00${a.id}`,
+              title: `${a.title}`,
+              severity: a.severity === "CRITICAL" ? "P1" : "P2",
+              status: a.status === "OPEN" || !a.status ? "Open" : a.status === "TRIAGED" ? "Triaged" : "In Progress",
+              assignee: "saroo",
+              assigneeColor: "#b91c1c",
+              sla: "1h 30m",
+              created: a.createdAt ? new Date(a.createdAt).toLocaleTimeString() : "Just now"
+            }));
+
+          setIncidents(prev => {
+            const existingTitles = new Set(prev.map(i => i.title));
+            const newIncidents = autoIncidents.filter(i => !existingTitles.has(i.title));
+            return [...newIncidents, ...prev];
+          });
+        }
       }
     } catch (err) {
       console.error("Error fetching database alerts:", err);
