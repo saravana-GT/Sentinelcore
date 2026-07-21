@@ -1604,43 +1604,49 @@ function Dashboard() {
                         <span className="kanban-col-count">{filtered.length}</span>
                       </div>
                       <div className="kanban-cards">
-                        {filtered.map((inc) => (
-                          <div className="k-card" key={inc.id}>
-                            <div className="k-card-id">{inc.id}</div>
-                            <div className="k-card-title">{inc.title}</div>
-                            <div className="k-card-meta">
-                              <div className="user-avatar k-card-assignee" style={{ background: inc.assigneeColor }}>
-                                {inc.assignee}
+                        {filtered.length > 0 ? (
+                          filtered.map((inc) => (
+                            <div className="k-card" key={inc.id}>
+                              <div className="k-card-id">{inc.id}</div>
+                              <div className="k-card-title">{inc.title}</div>
+                              <div className="k-card-meta">
+                                <div className="user-avatar k-card-assignee" style={{ background: inc.assigneeColor }}>
+                                  {inc.assignee}
+                                </div>
+                                <span className={`badge ${inc.severity === "P1" ? "badge-critical" : "badge-high"}`}>
+                                  {inc.severity}
+                                </span>
+                                <span className="k-card-sla">{inc.sla}</span>
                               </div>
-                              <span className={`badge ${inc.severity === "P1" ? "badge-critical" : "badge-high"}`}>
-                                {inc.severity}
-                              </span>
-                              <span className="k-card-sla">{inc.sla}</span>
-                            </div>
-                            
-                            <div className="k-card-actions" style={{ flexWrap: "wrap", gap: "4px" }}>
-                              {status !== "Open" && (
-                                <button className="k-card-action-btn" onClick={() => moveIncident(inc.id, status === "Triaged" ? "Open" : status === "In Progress" ? "Triaged" : "In Progress")}>
-                                  ◀ Move
+                              
+                              <div className="k-card-actions" style={{ flexWrap: "wrap", gap: "4px" }}>
+                                {status !== "Open" && (
+                                  <button className="k-card-action-btn" onClick={() => moveIncident(inc.id, status === "Triaged" ? "Open" : status === "In Progress" ? "Triaged" : "In Progress")}>
+                                    ◀ Move
+                                  </button>
+                                )}
+                                {status !== "Resolved" && (
+                                  <button className="k-card-action-btn" onClick={() => moveIncident(inc.id, status === "Open" ? "Triaged" : status === "Triaged" ? "In Progress" : "Resolved")}>
+                                    Move ▶
+                                  </button>
+                                )}
+                                <button className="k-card-action-btn" style={{ color: "var(--amber)" }} onClick={() => isolateHostFromIncident(inc.title)}>
+                                  ⚡ Isolate
                                 </button>
-                              )}
-                              {status !== "Resolved" && (
-                                <button className="k-card-action-btn" onClick={() => moveIncident(inc.id, status === "Open" ? "Triaged" : status === "Triaged" ? "In Progress" : "Resolved")}>
-                                  Move ▶
+                                <button className="k-card-action-btn" style={{ color: "var(--red)" }} onClick={() => killProcessFromIncident(inc.title)}>
+                                  🚫 Kill
                                 </button>
-                              )}
-                              <button className="k-card-action-btn" style={{ color: "var(--red)" }} title="Isolate Device" onClick={() => handleIsolateDeviceApi("PROD-DB-01")}>
-                                ⚡ Isolate
-                              </button>
-                              <button className="k-card-action-btn" style={{ color: "var(--amber)" }} title="Kill Malicious Process" onClick={() => handleKillProcessApi("PROD-DB-01", 1024)}>
-                                🚫 Kill
-                              </button>
-                              <button className="k-card-action-btn" style={{ color: "var(--cyan)" }} title="Collect Forensic Logs" onClick={() => handleCollectLogsApi("PROD-DB-01")}>
-                                📦 Logs
-                              </button>
+                                <button className="k-card-action-btn" style={{ color: "var(--blue)" }} onClick={() => collectLogsFromIncident(inc.title)}>
+                                  📦 Logs
+                                </button>
+                              </div>
                             </div>
+                          ))
+                        ) : (
+                          <div style={{ padding: "24px 12px", textAlign: "center", color: "var(--text-dim)", fontSize: "11px", fontStyle: "italic" }}>
+                            No {status.toLowerCase()} cases
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
                   );
@@ -1763,20 +1769,26 @@ function Dashboard() {
               </div>
 
               <div className="ioc-grid">
-                {threats.map((t, idx) => (
-                  <div className="ioc-card" key={idx}>
-                    <div className="ioc-type">{t.type}</div>
-                    <div className="ioc-value">{t.value}</div>
-                    <div className="ioc-meta">
-                      <span className={`badge ${t.severity === "CRITICAL" ? "badge-critical" : "badge-high"}`}>
-                        {t.severity} Severity
-                      </span>
-                      <span style={{ fontSize: "11px", color: "var(--text-dim)", marginLeft: "auto" }}>
-                        Logged: {t.date}
-                      </span>
+                {threats.length > 0 ? (
+                  threats.map((t, idx) => (
+                    <div className="ioc-card" key={idx}>
+                      <div className="ioc-type">{t.type}</div>
+                      <div className="ioc-value">{t.value}</div>
+                      <div className="ioc-meta">
+                        <span className={`badge ${t.severity === "CRITICAL" ? "badge-critical" : "badge-high"}`}>
+                          {t.severity} Severity
+                        </span>
+                        <span style={{ fontSize: "11px", color: "var(--text-dim)", marginLeft: "auto" }}>
+                          Logged: {t.date}
+                        </span>
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div style={{ gridColumn: "1 / -1", padding: "40px", textAlign: "center", color: "var(--text-dim)", background: "var(--surface)", borderRadius: "var(--radius)", border: "1px dashed var(--border)" }}>
+                    No watchlist threat indicators registered yet. Click <b>Sync Global Feed</b> to pull active IoCs.
                   </div>
-                ))}
+                )}
               </div>
             </div>
           )}
