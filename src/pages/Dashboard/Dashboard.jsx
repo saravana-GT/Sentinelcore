@@ -2,7 +2,16 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Sidebar/Sidebar";
 import Header from "../../components/Header/Header";
+import Chatbot from "../../components/Chatbot/Chatbot";
 import "./Dashboard.css";
+import {
+  ShieldAlert,
+  BellRing,
+  ShieldCheck,
+  Clock3,
+  MonitorSmartphone,
+  Activity,
+} from "lucide-react";
 
 let fallbackUrl = "http://localhost:5000";
 if (typeof window !== "undefined" && window.location.hostname.includes("onrender.com")) {
@@ -542,31 +551,41 @@ const updateArticle = async () => {
                   <div className="stat-label">Active Incidents</div>
                   <div className="stat-value">{incidents.filter(i => i.status !== "Resolved").length}</div>
                   <div className="stat-change up">▲ 3 from yesterday</div>
-                  <div className="stat-icon">🚨</div>
+                  <div className="stat-icon">
+                  <ShieldAlert size={22} strokeWidth={2.2} />
+                  </div>
                 </div>
                 <div className="stat-card amber">
                   <div className="stat-label">Open Alerts</div>
                   <div className="stat-value">{alerts.filter(a => a.status !== "Resolved").length}</div>
                   <div className="stat-change up">▲ 7 from yesterday</div>
-                  <div className="stat-icon">🔔</div>
+                  <div className="stat-icon">
+                  <BellRing size={22} strokeWidth={2.2} />
+                  </div>
                 </div>
                 <div className="stat-card purple">
                   <div className="stat-label">Risk Score</div>
                   <div className="stat-value">72</div>
                   <div className="stat-change up">▲ 4 pts increase</div>
-                  <div className="stat-icon">📈</div>
+                  <div className="stat-icon">
+                  <ShieldCheck size={22} strokeWidth={2.2} />
+                  </div>
                 </div>
                 <div className="stat-card green">
                   <div className="stat-label">MTTR (Mean Time)</div>
                   <div className="stat-value">4.2<span style={{ fontSize: "14px", color: "var(--text-dim)" }}>h</span></div>
                   <div className="stat-change down">▼ 12% improved</div>
-                  <div className="stat-icon">⏱️</div>
+                  <div className="stat-icon">
+                  <Clock3 size={22} strokeWidth={2.2} />
+                  </div>
                 </div>
                 <div className="stat-card cyan">
                   <div className="stat-label">Monitored Assets</div>
                   <div className="stat-value">{assets.length}</div>
                   <div className="stat-change" style={{ color: "var(--text-dim)" }}>— active monitor</div>
-                  <div className="stat-icon">🖥️</div>
+                  <div className="stat-icon">
+                  <MonitorSmartphone size={22} strokeWidth={2.2} />
+                  </div>
                 </div>
               </div>
 
@@ -1185,45 +1204,23 @@ const updateArticle = async () => {
               </div>
             </div>
           )}
-
-         {/* ===== 12. KNOWLEDGE BASE VIEW ===== */}
+{/* ===== 12. KNOWLEDGE BASE VIEW ===== */}
 {activeTab === "knowledge" && (
-  <>
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: "20px",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          gap: "10px",
-          alignItems: "center",
-        }}
-      >
+  <div className="kb-page">
+    <div className="kb-toolbar">
+      <div className="kb-filters">
         <input
           type="text"
           placeholder="🔍 Search articles..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            width: "250px",
-            padding: "10px",
-            borderRadius: "8px",
-            border: "1px solid #ccc",
-          }}
+          className="kb-input"
         />
 
         <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
-          style={{
-            padding: "10px",
-            borderRadius: "8px",
-          }}
+          className="kb-select"
         >
           <option value="All">All Categories</option>
           <option value="Email Security">Email Security</option>
@@ -1235,25 +1232,16 @@ const updateArticle = async () => {
       </div>
 
       <button
-  onClick={() => setShowAddArticle(true)}
-  style={{
-    background: "#7B3F00",
-    color: "#fff",
-    border: "none",
-    padding: "10px 22px",
-    borderRadius: "8px",
-    fontWeight: "600",
-    cursor: "pointer",
-    transition: "0.3s",
-  }}
->
-  ➕ Add Article
-</button>
+        onClick={() => setShowAddArticle(true)}
+        className="btn-primary"
+      >
+        ➕ Add Article
+      </button>
     </div>
 
     <div className="kb-grid">
       {knowledgeArticles.length === 0 ? (
-        <p>No Knowledge Base articles found.</p>
+        <p className="kb-empty">No Knowledge Base articles found.</p>
       ) : (
         knowledgeArticles
           .filter((article) => {
@@ -1261,169 +1249,84 @@ const updateArticle = async () => {
               article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
               article.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
               article.author.toLowerCase().includes(searchTerm.toLowerCase());
-
             const matchesCategory =
-              selectedCategory === "All" ||
-              article.category === selectedCategory;
-
+              selectedCategory === "All" || article.category === selectedCategory;
             return matchesSearch && matchesCategory;
           })
           .map((article) => (
             <div className="kb-card" key={article.id}>
+              <h2>{article.title}</h2>
 
-    <h3> {article.title}</h3>
+              <div className="kb-label">Category</div>
+              <div className="kb-value">{article.category}</div>
 
-    <div className="kb-label">Category</div>
-    <div className="kb-value">{article.category}</div>
+              <div className="kb-label">Content</div>
+              <div className="kb-content">{article.content}</div>
 
-    <div className="kb-label">Content</div>
-    <div className="kb-content">
-        {article.content}
-    </div>
+              <div className="kb-footer">
+                <span><b>Author:</b> {article.author}</span>
+                <span>{article.createdAt}</span>
+              </div>
 
-    <div className="kb-footer">
-        <span><b>Author:</b> {article.author}</span>
-        <span>{article.createdAt}</span>
-    </div>
+              <hr className="kb-divider"/>
 
-    <hr className="kb-divider"/>
-
-    <div className="kb-actions">
-
-        <button
-  onClick={() => editArticle(article)}
-  style={{
-    background: "#7B3F00",
-    color: "white",
-    border: "none",
-    padding: "10px 18px",
-    borderRadius: "8px",
-    fontWeight: "600",
-    cursor: "pointer",
-  }}
->
-    ✏ Edit
-</button>
-
-        <button
-  onClick={() => deleteArticle(article.id)}
-  style={{
-    background: "#7B3F00",
-    color: "white",
-    border: "none",
-    padding: "10px 18px",
-    borderRadius: "8px",
-    fontWeight: "600",
-    cursor: "pointer",
-  }}
->
-   🗑 Delete
-</button>
-    </div>
-
-</div>
+              <div className="kb-actions">
+                <button onClick={() => editArticle(article)} className="kb-edit">
+                  ✏ Edit
+                </button>
+                <button onClick={() => deleteArticle(article.id)} className="kb-delete">
+                  🗑 Delete
+                </button>
+              </div>
+            </div>
           ))
       )}
     </div>
-  </>
+  </div>
 )}
-
 {/* ===== ADD ARTICLE POPUP ===== */}
 {showAddArticle && (
-  <div
-    style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      background: "rgba(0,0,0,0.5)",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      zIndex: 1000,
-    }}
-  >
-    <div
-      style={{
-        background: "#fff",
-        padding: "25px",
-        borderRadius: "10px",
-        width: "500px",
-      }}
-    >
+  <div className="kb-modal-overlay">
+    <div className="kb-modal">
       <h2>Add Knowledge Base Article</h2>
 
       <input
         type="text"
         placeholder="Title"
         value={newArticle.title}
-        onChange={(e) =>
-          setNewArticle({ ...newArticle, title: e.target.value })
-        }
-        style={{ width: "100%", marginBottom: "10px", padding: "10px" }}
+        onChange={(e) => setNewArticle({ ...newArticle, title: e.target.value })}
+        className="kb-modal-input"
       />
 
       <input
         type="text"
         placeholder="Category"
         value={newArticle.category}
-        onChange={(e) =>
-          setNewArticle({ ...newArticle, category: e.target.value })
-        }
-        style={{ width: "100%", marginBottom: "10px", padding: "10px" }}
+        onChange={(e) => setNewArticle({ ...newArticle, category: e.target.value })}
+        className="kb-modal-input"
       />
 
       <textarea
         rows="5"
         placeholder="Content"
         value={newArticle.content}
-        onChange={(e) =>
-          setNewArticle({ ...newArticle, content: e.target.value })
-        }
-        style={{ width: "100%", marginBottom: "10px", padding: "10px" }}
+        onChange={(e) => setNewArticle({ ...newArticle, content: e.target.value })}
+        className="kb-modal-input kb-modal-textarea"
       />
 
       <input
         type="text"
         placeholder="Author"
         value={newArticle.author}
-        onChange={(e) =>
-          setNewArticle({ ...newArticle, author: e.target.value })
-        }
-        style={{ width: "100%", marginBottom: "15px", padding: "10px" }}
+        onChange={(e) => setNewArticle({ ...newArticle, author: e.target.value })}
+        className="kb-modal-input"
       />
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          gap: "10px",
-        }}
-      >
-        <button
-          onClick={() => setShowAddArticle(false)}
-          style={{
-            padding: "10px 18px",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-          }}
-        >
+      <div className="kb-modal-actions">
+        <button onClick={() => setShowAddArticle(false)} className="btn-secondary">
           Cancel
         </button>
-
-        <button
-          onClick={saveArticle}
-          style={{
-            padding: "10px 18px",
-            background: "#2563eb",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            fontWeight: "bold",
-            cursor: "pointer",
-          }}
-        >
+        <button onClick={saveArticle} className="btn-primary">
           💾 Save Article
         </button>
       </div>
@@ -1431,91 +1334,45 @@ const updateArticle = async () => {
   </div>
 )}
 
+{/* ===== EDIT ARTICLE POPUP ===== */}
 {showEditArticle && editingArticle && (
-  <div
-    style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      background: "rgba(0,0,0,0.5)",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      zIndex: 1000,
-    }}
-  >
-    <div
-      style={{
-        background: "#fff",
-        padding: "25px",
-        borderRadius: "10px",
-        width: "500px",
-      }}
-    >
+  <div className="kb-modal-overlay">
+    <div className="kb-modal">
       <h2>Edit Knowledge Base Article</h2>
 
       <input
         type="text"
         value={editingArticle.title}
-        onChange={(e) =>
-          setEditingArticle({
-            ...editingArticle,
-            title: e.target.value,
-          })
-        }
-        style={{ width: "100%", marginBottom: "10px", padding: "10px" }}
+        onChange={(e) => setEditingArticle({ ...editingArticle, title: e.target.value })}
+        className="kb-modal-input"
       />
 
       <input
         type="text"
         value={editingArticle.category}
-        onChange={(e) =>
-          setEditingArticle({
-            ...editingArticle,
-            category: e.target.value,
-          })
-        }
-        style={{ width: "100%", marginBottom: "10px", padding: "10px" }}
+        onChange={(e) => setEditingArticle({ ...editingArticle, category: e.target.value })}
+        className="kb-modal-input"
       />
 
       <textarea
         rows="5"
         value={editingArticle.content}
-        onChange={(e) =>
-          setEditingArticle({
-            ...editingArticle,
-            content: e.target.value,
-          })
-        }
-        style={{ width: "100%", marginBottom: "10px", padding: "10px" }}
+        onChange={(e) => setEditingArticle({ ...editingArticle, content: e.target.value })}
+        className="kb-modal-input kb-modal-textarea"
       />
 
       <input
         type="text"
         value={editingArticle.author}
-        onChange={(e) =>
-          setEditingArticle({
-            ...editingArticle,
-            author: e.target.value,
-          })
-        }
-        style={{ width: "100%", marginBottom: "15px", padding: "10px" }}
+        onChange={(e) => setEditingArticle({ ...editingArticle, author: e.target.value })}
+        className="kb-modal-input"
       />
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          gap: "10px",
-        }}
-      >
-        <button onClick={() => setShowEditArticle(false)}>
+      <div className="kb-modal-actions">
+        <button onClick={() => setShowEditArticle(false)} className="btn-secondary">
           Cancel
         </button>
-
-        <button onClick={updateArticle}>
+        <button onClick={updateArticle} className="btn-primary">
           Update
         </button>
       </div>
@@ -1925,6 +1782,7 @@ const updateArticle = async () => {
           </div>
         </div>
       )}
+      <Chatbot />
     </div>
   );
 }

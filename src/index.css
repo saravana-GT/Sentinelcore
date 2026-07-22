@@ -10,11 +10,14 @@
   
   --border: #e6dfd3;      /* Warm border */
   --border-light: #d8cebe;
+
+   --text:       #ffffff;  /* Main text - pure white */
+  --text-muted: #cbd5e1;  /* Secondary text - light gray */
+  --text-dim:   #94a3b8;  /* Tertiary text - dim gray */
+  --heading:    #ffffff;  /* Headings - white */
   
-  --text: #2c2520;        /* Dark brown-charcoal text */
-  --text-muted: #6b5d54;  /* Muted earth gray */
-  --text-dim: #8f7f75;    /* Dim gray */
-  --heading: #1c1613;     /* Dark heading */
+  --accent:     #60a5fa;  /* Soft blue accents */
+  --border:     #1e293b;  /* Dark borders */
   
   --accent: #6b0d23;      /* Deep burgundy primary */
   --accent-hover: #82152f;

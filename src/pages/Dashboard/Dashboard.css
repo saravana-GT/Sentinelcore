@@ -362,16 +362,17 @@
 .kanban-col:hover {
   border-color: var(--border-light);
 }
-
 .kanban-col-header {
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid #2c5aa0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
-}
 
+  background: linear-gradient(135deg, #0f4c81, #1d6fa5);
+  color: #ffffff;
+}
 .kanban-col-title {
   font-size: 12px;
   font-weight: 700;
@@ -997,123 +998,460 @@
     grid-template-columns: 1fr;
   }
 }
-/* ============================
-   KNOWLEDGE BASE
-============================ */
+/* ===========================
+  knowledge Base
+=========================== */
 
-.kb-grid{
-    display:flex;
-    flex-direction:column;
-    gap:24px;
+:root {
+  --bg: #050a15;
+  --surface: rgba(10, 25, 47, 0.85);
+  --surface-2: rgba(16, 35, 65, 0.9);
+
+  --accent: #00d2ff;
+  --accent-hover: #0099ff;
+  --accent-glow: rgba(0, 210, 255, 0.3);
+
+  --border: #1e3a5f;
+
+  --text: #e6f1ff;
+  --text-muted: #8892b0;
+
+  --red: #ff4d4d;
+  --red-dim: rgba(255, 77, 77, 0.1);
+
+  --radius: 6px;
+  --radius-lg: 12px;
+
+  --transition: all 0.3s ease;
 }
 
-.kb-card{
-    background:#ffffff;
-    border:1px solid #dbe3ef;
-    border-radius:14px;
-    padding:24px;
-    box-shadow:0 6px 20px rgba(0,0,0,.08);
-    transition:.25s;
+/* ===========================
+   Page Wrapper
+=========================== */
+
+.kb-page {
+  min-height: 100vh;
+  padding: 24px;
+
+  background-image:
+    linear-gradient(
+      rgba(5, 10, 21, 0.88),
+      rgba(5, 10, 21, 0.88)
+    ),
+    url("/login-bg.png");
+
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  background-attachment: fixed;
+
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-.kb-card:hover{
-    transform:translateY(-4px);
-    box-shadow:0 10px 25px rgba(0,0,0,.12);
+/* ===========================
+   Toolbar
+=========================== */
+
+.kb-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 18px;
 }
 
-/* Title */
-
-.kb-card h2{
-    margin:0 0 18px;
-    color:#b26c2e;
-    font-size:24px;
-    font-weight:700;
-    letter-spacing:.3px;
+.kb-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-/* Labels */
+/* ===========================
+   Inputs
+=========================== */
 
-.kb-label{
-    color:#4d4c4a;
-    font-size:15px;
-    font-weight:400;
-    margin-bottom:4px;
+.kb-input,
+.kb-select {
+  width: 240px;
+  padding: 10px 12px;
+
+  font-size: 13px;
+  color: var(--accent);
+
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+
+  outline: none;
+  transition: var(--transition);
 }
 
-/* Values */
-
-.kb-value{
-    color:#374151;
-    font-size:16px;
-    line-height:1.8;
-    margin-bottom:18px;
+.kb-input::placeholder {
+  color: var(--text-muted);
 }
 
-/* Content */
-
-.kb-content{
-    background:#f8fafc;
-    border-left:5px solid #875c0c;
-    padding:15px;
-    border-radius:8px;
-    color:#444;
-    line-height:1.9;
-    margin-top:8px;
-    margin-bottom:18px;
+.kb-input:focus,
+.kb-select:focus {
+  background: rgba(20, 45, 85, 1);
+  border-color: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
 }
 
-/* Divider */
+/* ===========================
+   Primary Button
+=========================== */
 
-.kb-divider{
-    border:none;
-    border-top:1px solid #e5e7eb;
-    margin:18px 0;
+.btn-primary {
+  padding: 10px 18px;
+
+  background: transparent;
+  color: var(--accent);
+
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+
+  cursor: pointer;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+
+  transition: var(--transition);
 }
 
-/* Footer */
+.btn-primary:hover {
+  background: var(--accent);
+  color: var(--bg);
 
-.kb-footer{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    color:#6b7280;
-    font-size:14px;
-    margin-top:18px;
+  box-shadow: 0 0 15px var(--accent-glow);
+  transform: translateY(-1px);
 }
 
-/* Buttons */
+/* ===========================
+   Empty State
+=========================== */
 
-.kb-actions{
-    display:flex;
-    justify-content:flex-end;
-    gap:12px;
-    margin-top:20px;
+.kb-empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
 }
 
-.kb-edit{
-    background:#8b5c0a;
-    color:white;
-    border:none;
-    padding:9px 18px;
-    border-radius:8px;
-    cursor:pointer;
-    font-weight:600;
+/* ===========================
+   Grid
+=========================== */
+
+.kb-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.kb-edit:hover{
-    background:#8b5c0a;
+/* ===========================
+   Card
+=========================== */
+
+.kb-card {
+  position: relative;
+  overflow: hidden;
+
+  padding: 20px 24px;
+
+  background: var(--surface);
+  backdrop-filter: blur(10px);
+
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.1);
+
+  transition: var(--transition);
 }
 
-.kb-delete{
-    background:#dc2626;
-    color:white;
-    border:none;
-    padding:9px 18px;
-    border-radius:8px;
-    cursor:pointer;
-    font-weight:600;
+.kb-card::before {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+
+  height: 2px;
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--accent),
+    transparent
+  );
 }
 
-.kb-delete:hover{
-    background:#b91c1c;
+.kb-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 20px rgba(0, 210, 255, 0.2);
+}
+
+/* ===========================
+   Card Heading
+=========================== */
+
+.kb-card h2 {
+  margin: 0 0 12px;
+
+  color: var(--accent);
+
+  font-size: 16px;
+  font-weight: 700;
+
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+
+  text-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* ===========================
+   Labels & Values
+=========================== */
+
+.kb-label {
+  display: block;
+  margin-bottom: 4px;
+
+  color: var(--text-muted);
+
+  font-size: 10px;
+  font-weight: 600;
+
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+}
+
+.kb-value {
+  margin-bottom: 12px;
+
+  color: var(--text);
+
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ===========================
+   Content Box
+=========================== */
+
+.kb-content {
+  margin: 6px 0 12px;
+  padding: 10px 12px;
+
+  background: var(--surface-2);
+
+  border-left: 2px solid var(--accent);
+  border-radius: var(--radius);
+
+  color: var(--text);
+
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* ===========================
+   Divider
+=========================== */
+
+.kb-divider {
+  margin: 12px 0;
+
+  border: none;
+  border-top: 1px solid var(--border);
+
+  opacity: 0.3;
+}
+
+/* ===========================
+   Footer
+=========================== */
+
+.kb-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-top: 10px;
+
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* ===========================
+   Actions
+=========================== */
+
+.kb-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+
+  margin-top: 12px;
+}
+
+/* ===========================
+   Buttons
+=========================== */
+
+.kb-edit,
+.kb-delete {
+  padding: 8px 14px;
+
+  background: transparent;
+
+  border-radius: var(--radius);
+
+  cursor: pointer;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+
+  transition: var(--transition);
+}
+
+/* Edit Button */
+
+.kb-edit {
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.kb-edit:hover {
+  background: var(--accent);
+  color: var(--bg);
+
+  box-shadow: 0 0 12px var(--accent-glow);
+  transform: translateY(-1px);
+}
+
+/* Delete Button */
+
+.kb-delete {
+  color: var(--red);
+  border: 1px solid var(--red);
+}
+
+.kb-delete:hover {
+  background: var(--red);
+  color: var(--bg);
+
+  box-shadow: 0 0 12px rgba(255, 77, 77, 0.3);
+  transform: translateY(-1px);
+}
+/* ===========================
+   MODAL - CYBER THEME
+=========================== */
+
+.kb-modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(5, 10, 21, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.kb-modal {
+  background: var(--surface);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  width: 500px;
+  max-width: 90%;
+  box-shadow: 0 0 30px rgba(0, 210, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.kb-modal::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+
+.kb-modal h2 {
+  margin: 0 0 20px;
+  color: var(--accent);
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  text-shadow: 0 0 8px var(--accent-glow);
+  text-align: center;
+}
+
+/* Modal Inputs */
+.kb-modal-input {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--accent);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  outline: none;
+  transition: var(--transition);
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.kb-modal-input::placeholder {
+  color: var(--text-muted);
+}
+
+.kb-modal-input:focus {
+  background: rgba(20, 45, 85, 1);
+  border-color: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.kb-modal-textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+/* Modal Actions */
+.kb-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+/* Secondary Button = Cancel */
+.btn-secondary {
+  padding: 10px 18px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  transition: var(--transition);
+}
+.btn-secondary:hover {
+  background: var(--border);
+  color: var(--text);
+  transform: translateY(-1px);
 }

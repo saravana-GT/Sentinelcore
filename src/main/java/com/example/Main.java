@@ -27,6 +27,7 @@ public class Main {
         server.createContext("/api/alerts", new com.example.controller.AlertController());
         server.createContext("/api/metrics", new com.example.controller.MetricController());
         server.createContext("/api/knowledgebase", new com.example.controller.KnowledgeBaseController());
+        server.createContext("/api/chat", new com.example.controller.ChatbotController());
         server.setExecutor(null); // Defaults configuration to default server pooling thread execution executor
         System.out.println("SentinelCore Enterprise Backend running successfully on port " + port);
         server.start();

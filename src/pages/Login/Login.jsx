@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
 
+
 let fallbackUrl = "http://localhost:5000";
 if (typeof window !== "undefined" && window.location.hostname.includes("onrender.com")) {
   fallbackUrl = "https://sentinelcore-9hxu.onrender.com";
@@ -23,7 +24,7 @@ function Login() {
   const [otpError, setOtpError] = useState("");
   const [tempAuthData, setTempAuthData] = useState(null);
 
-  // Clear session data if visiting login page afresh (but keep settings like mfa_enabled and existing sessions)
+  // Clear session data if visiting login page afresh
   useEffect(() => {
     const mfa = localStorage.getItem("mfa_enabled");
     const sessions = localStorage.getItem("sessions");
@@ -72,7 +73,6 @@ function Login() {
     e.preventDefault();
     setApiError("");
 
-    // Final validation check
     const tempErrors = {};
     if (!email) tempErrors.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) tempErrors.email = "Invalid email format";
@@ -98,7 +98,6 @@ function Login() {
       if (response.ok) {
         const isMfaEnabled = localStorage.getItem("mfa_enabled") === "true";
         if (isMfaEnabled) {
-          // Store data temporarily and transition to MFA screen
           setTempAuthData(data);
           setIsMfaStep(true);
         } else {
@@ -118,13 +117,11 @@ function Login() {
     e.preventDefault();
     setOtpError("");
 
-    // Mock verification: any code works, but we tell the user to use '123456' for testing
     if (!otpCode || otpCode.trim().length !== 6) {
       setOtpError("Please enter a valid 6-digit OTP code.");
       return;
     }
 
-    // Log the successful MFA authentication
     const auditLogs = JSON.parse(localStorage.getItem("audit_logs") || "[]");
     auditLogs.unshift({
       timestamp: new Date().toLocaleTimeString(),
@@ -141,19 +138,16 @@ function Login() {
     localStorage.setItem("username", authData.username);
     localStorage.setItem("role", authData.role);
 
-    // Session tracking: register a new active session
     let sessions = JSON.parse(localStorage.getItem("sessions") || "[]");
     
-    // Add current session details
     const newSession = {
       id: Math.random().toString(36).substring(2, 9),
       device: navigator.userAgent.includes("Windows") ? "Windows PC · Chrome" : "Mobile Browser",
-      ip: "192.168.1.100", // simulated IP
+      ip: "192.168.1.100",
       loginTime: new Date().toLocaleString(),
       isCurrent: true
     };
 
-    // Mark previous sessions as not current
     sessions = sessions.map(s => ({ ...s, isCurrent: false }));
     sessions.unshift(newSession);
     localStorage.setItem("sessions", JSON.stringify(sessions));
@@ -162,10 +156,12 @@ function Login() {
   };
 
   return (
-    <div className="login-container">
+    // APPLY BACKGROUND HERE
+    <div 
+      className="login-container">
       <div className="login-card">
         <h1>🛡 SentinelCore</h1>
-        <h4>Security Operations Dashboard</h4>
+        <h4>Intelligence Monitoring System</h4>
 
         {apiError && <div className="api-error">{apiError}</div>}
         {otpError && <div className="api-error">{otpError}</div>}

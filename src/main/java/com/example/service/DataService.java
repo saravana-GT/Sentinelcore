@@ -43,6 +43,21 @@ public class DataService {
             em.close();
         }
     }
+    //All Users
+
+    public List<User> getAllUsers() {
+
+    EntityManager em = JPAUtil.getEntityManager();
+
+    List<User> users = em.createQuery(
+            "SELECT u FROM User u",
+            User.class)
+            .getResultList();
+
+    em.close();
+
+    return users;
+}
 
     // ========================= ALERT =========================
 

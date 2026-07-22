@@ -1,6 +1,23 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Sidebar.css";
+import {
+  LayoutDashboard,
+  ShieldAlert,
+  BellRing,
+  Radar,
+  ShieldX,
+  Server,
+  Database,
+  Workflow,
+  ClipboardCheck,
+  BarChart3,
+  FileSearch,
+  BookOpen,
+  Users,
+  Settings,
+  LogOut,
+} from "lucide-react";
 
 function Sidebar({ activeTab, setActiveTab }) {
   const navigate = useNavigate();
@@ -61,27 +78,35 @@ function Sidebar({ activeTab, setActiveTab }) {
           className={`nav-item ${activeTab === "dashboard" ? "active" : ""}`}
           onClick={() => setActiveTab("dashboard")}
         >
-          <span className="nav-icon">📊</span> Dashboard
+          <span className="nav-icon">
+          <LayoutDashboard size={20} strokeWidth={2.2} />
+          </span>Dashboard
         </button>
         <button
           className={`nav-item ${activeTab === "incidents" ? "active" : ""}`}
           onClick={() => setActiveTab("incidents")}
         >
-          <span className="nav-icon">🚨</span> Incidents
+          <span className="nav-icon">
+          <ShieldAlert size={20} strokeWidth={2.2} />
+          </span> Incidents
           <span className="nav-badge badge-red">12</span>
         </button>
         <button
           className={`nav-item ${activeTab === "alerts" ? "active" : ""}`}
           onClick={() => setActiveTab("alerts")}
         >
-          <span className="nav-icon">🔔</span> Alerts
+          <span className="nav-icon">
+          <BellRing size={20} strokeWidth={2.2} />
+          </span>Alerts
           <span className="nav-badge badge-amber">34</span>
         </button>
         <button
           className={`nav-item ${activeTab === "threats" ? "active" : ""}`}
           onClick={() => setActiveTab("threats")}
         >
-          <span className="nav-icon">🎯</span> Threat Intel
+          <span className="nav-icon">
+          <Radar size={20} strokeWidth={2.2} />
+          </span> Threat Intel
           <span className="nav-badge badge-red">8</span>
         </button>
 
@@ -90,27 +115,35 @@ function Sidebar({ activeTab, setActiveTab }) {
           className={`nav-item ${activeTab === "vulnerabilities" ? "active" : ""}`}
           onClick={() => setActiveTab("vulnerabilities")}
         >
-          <span className="nav-icon">🛡️</span> Vulnerabilities
+          <span className="nav-icon">
+          <ShieldX size={20} strokeWidth={2.2} />
+          </span> Vulnerabilities
           <span className="nav-badge badge-amber">156</span>
         </button>
         <button
           className={`nav-item ${activeTab === "assets" ? "active" : ""}`}
           onClick={() => setActiveTab("assets")}
         >
-          <span className="nav-icon">🖥️</span> Assets
+          <span className="nav-icon">
+          <Server size={20} strokeWidth={2.2} />
+          </span> Assets
           <span className="nav-badge badge-blue">89</span>
         </button>
         <button
           className={`nav-item ${activeTab === "logs" ? "active" : ""}`}
           onClick={() => setActiveTab("logs")}
         >
-          <span className="nav-icon">📋</span> Log Explorer
+          <span className="nav-icon">
+          <Database size={20} strokeWidth={2.2} />
+          </span> Log Explorer
         </button>
         <button
           className={`nav-item ${activeTab === "playbooks" ? "active" : ""}`}
           onClick={() => setActiveTab("playbooks")}
         >
-          <span className="nav-icon">⚙️</span> Playbooks
+          <span className="nav-icon">
+          <Workflow size={20} strokeWidth={2.2} />
+          </span> Playbooks
         </button>
 
         <div className="nav-section">Governance</div>
@@ -118,26 +151,34 @@ function Sidebar({ activeTab, setActiveTab }) {
           className={`nav-item ${activeTab === "compliance" ? "active" : ""}`}
           onClick={() => setActiveTab("compliance")}
         >
-          <span className="nav-icon">✅</span> Compliance
+          <span className="nav-icon">
+          <ClipboardCheck size={20} strokeWidth={2.2} />
+          </span>Compliance
           <span className="nav-badge badge-green">78%</span>
         </button>
         <button
           className={`nav-item ${activeTab === "reports" ? "active" : ""}`}
           onClick={() => setActiveTab("reports")}
         >
-          <span className="nav-icon">📄</span> Reports
+          <span className="nav-icon">
+          <BarChart3 size={20} strokeWidth={2.2} />
+          </span> Reports
         </button>
         <button
           className={`nav-item ${activeTab === "audit" ? "active" : ""}`}
           onClick={() => setActiveTab("audit")}
         >
-          <span className="nav-icon">🔍</span> Audit Trail
+          <span className="nav-icon">
+          <FileSearch size={20} strokeWidth={2.2} />
+          </span> Audit Trail
         </button>
         <button
           className={`nav-item ${activeTab === "knowledge" ? "active" : ""}`}
           onClick={() => setActiveTab("knowledge")}
         >
-          <span className="nav-icon">📚</span> Knowledge Base
+          <span className="nav-icon">
+          <BookOpen size={20} strokeWidth={2.2} />
+          </span> Knowledge Base
         </button>
 
         {role === "ADMIN" && (
@@ -147,13 +188,17 @@ function Sidebar({ activeTab, setActiveTab }) {
               className={`nav-item ${activeTab === "users" ? "active" : ""}`}
               onClick={() => setActiveTab("users")}
             >
-              <span className="nav-icon">👥</span> Users & Teams
+              <span className="nav-icon">
+              <Users size={20} strokeWidth={2.2} />
+              </span> Users & Teams
             </button>
             <button
               className={`nav-item ${activeTab === "settings" ? "active" : ""}`}
               onClick={() => setActiveTab("settings")}
             >
-              <span className="nav-icon">⚙️</span> Settings
+              <span className="nav-icon">
+              <Settings size={20} strokeWidth={2.2} />
+              </span> Settings
             </button>
           </>
         )}
@@ -167,7 +212,7 @@ function Sidebar({ activeTab, setActiveTab }) {
             <div className="role">{renderRoleLabel(role)}</div>
           </div>
           <button className="logout-btn" onClick={handleLogout} title="Logout">
-            🚪
+          <LogOut size={18} strokeWidth={2.2} />
           </button>
         </div>
       </div>

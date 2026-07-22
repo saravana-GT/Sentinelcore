@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import "./Header.css";
+import { Bell, Search } from 'lucide-react';
 
 function Header({ activeTab, onNewIncidentClick, showToast }) {
   const [role, setRole] = useState("ADMIN");
@@ -43,12 +44,12 @@ function Header({ activeTab, onNewIncidentClick, showToast }) {
 
       <div className="topbar-actions">
         <div className="search-box">
-          <span>🔍</span>
+          <span><Search size={16} strokeWidth={2} /></span>
           <input type="text" placeholder="Search logs, CVEs, assets..." />
         </div>
 
         <button className="topbar-btn notif-dot" onClick={handleNotificationClick} title="View Notifications">
-          🔔
+        <Bell size={18} strokeWidth={2} />
         </button>
 
         {role === "VIEWER" ? (
