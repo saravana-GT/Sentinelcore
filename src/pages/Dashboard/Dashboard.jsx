@@ -55,7 +55,9 @@ function Dashboard() {
   const [logSource, setLogSource] = useState("");
 
   // Audit Logs (dynamic tracking)
-  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditLogs, setAuditLogs] = useState(() => {
+    return JSON.parse(localStorage.getItem("audit_logs") || "[]");
+  });
 
   // Sessions list
   const [sessions, setSessions] = useState([]);
@@ -782,7 +784,19 @@ function Dashboard() {
       });
       if (res.ok) {
         const data = await res.json();
-        setAuditLogs(data);
+        const formattedBackend = data.map(log => ({
+          timestamp: log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : "",
+          user: log.username || "System",
+          action: log.action + (log.targetHost ? ` on ${log.targetHost}` : "")
+        }));
+        const localLogs = JSON.parse(localStorage.getItem("audit_logs") || "[]");
+        const combined = [...localLogs];
+        formattedBackend.forEach(blog => {
+          if (!combined.some(ll => ll.action === blog.action && ll.timestamp === blog.timestamp)) {
+            combined.push(blog);
+          }
+        });
+        setAuditLogs(combined);
       }
     } catch (err) {
       console.error(err);
