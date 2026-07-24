@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Sidebar/Sidebar";
 import Header from "../../components/Header/Header";
+import Chatbot from "../../components/Chatbot/Chatbot";
 import "./Dashboard.css";
 
 let fallbackUrl = "https://sentinelcore-9hxu.onrender.com";
@@ -97,6 +98,20 @@ function Dashboard() {
   });
   const [wsConnected, setWsConnected] = useState(false);
   const [incidentTimeframe, setIncidentTimeframe] = useState("30D");
+
+  // Knowledge Base States
+  const [knowledgeArticles, setKnowledgeArticles] = useState([]);
+  const [showAddArticle, setShowAddArticle] = useState(false);
+  const [newArticle, setNewArticle] = useState({
+    title: "",
+    category: "",
+    content: "",
+    author: ""
+  });
+  const [editingArticle, setEditingArticle] = useState(null);
+  const [showEditArticle, setShowEditArticle] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
 
   // Asset Management API States
   const [dbAssets, setDbAssets] = useState([]);
@@ -780,10 +795,110 @@ function Dashboard() {
     }
   }, [activeTab]);
 
-  // Live feed stream simulation is now handled via WebSocket from the database alerts.
+  const fetchKnowledgeArticles = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/knowledgebase`);
+      if (res.ok) {
+        const data = await res.json();
+        setKnowledgeArticles(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch knowledge base articles:", err);
+    }
+  };
+
   useEffect(() => {
-    // Left empty. Real-time alerts are populated by the WebSocket client onmessage handler.
-  }, []);
+    if (activeTab === "knowledge") {
+      fetchKnowledgeArticles();
+    }
+  }, [activeTab]);
+
+  const saveArticle = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/knowledgebase`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newArticle),
+      });
+
+      if (!response.ok) {
+        showToast("warning", "Failed to save article.");
+        return;
+      }
+
+      fetchKnowledgeArticles();
+
+      // Reset form
+      setNewArticle({
+        title: "",
+        category: "",
+        content: "",
+        author: username || "Sarah Anderson",
+      });
+
+      setShowAddArticle(false);
+      showToast("success", "Article added successfully!");
+      addAuditLog(`Added Knowledge Base article: ${newArticle.title}`);
+    } catch (err) {
+      console.error(err);
+      showToast("warning", "Unable to connect to backend.");
+    }
+  };
+
+  const deleteArticle = async (id) => {
+    if (!window.confirm("Delete this article?")) return;
+
+    try {
+      const response = await fetch(`${API_URL}/api/knowledgebase/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        showToast("warning", "Delete failed");
+        return;
+      }
+
+      setKnowledgeArticles((prev) => prev.filter((article) => article.id !== id));
+      showToast("success", "Article deleted successfully.");
+      addAuditLog(`Deleted Knowledge Base article ID: ${id}`);
+    } catch (err) {
+      console.error(err);
+      showToast("warning", "Unable to connect to backend.");
+    }
+  };
+
+  const editArticle = (article) => {
+    setEditingArticle({ ...article });
+    setShowEditArticle(true);
+  };
+
+  const updateArticle = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/knowledgebase/${editingArticle.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editingArticle),
+      });
+
+      if (!response.ok) {
+        showToast("warning", "Failed to update article.");
+        return;
+      }
+
+      fetchKnowledgeArticles();
+      setShowEditArticle(false);
+      setEditingArticle(null);
+      showToast("success", "Article updated successfully.");
+      addAuditLog(`Updated Knowledge Base article: ${editingArticle.title}`);
+    } catch (err) {
+      console.error(err);
+      showToast("warning", "Unable to connect to backend.");
+    }
+  };
 
   // Log audit helper
   const addAuditLog = (actionText) => {
@@ -2562,27 +2677,178 @@ function Dashboard() {
           )}
 
           {/* ===== 12. KNOWLEDGE BASE VIEW ===== */}
+          {/* ===== 12. KNOWLEDGE BASE VIEW ===== */}
           {activeTab === "knowledge" && (
-            <div>
-              <div style={{ textAlign: "left", marginBottom: "20px" }}>
-                <h2 style={{ fontSize: "20px", color: "var(--heading)", fontWeight: "800" }}>Security Runbooks</h2>
-                <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>Guides and post-incident reviews (PIR)</p>
+            <div className="kb-page">
+              <div className="kb-toolbar">
+                <div className="kb-filters">
+                  <input
+                    type="text"
+                    placeholder="🔍 Search articles..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="kb-input"
+                  />
+
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="kb-select"
+                  >
+                    <option value="All">All Categories</option>
+                    <option value="Email Security">Email Security</option>
+                    <option value="Web Security">Web Security</option>
+                    <option value="Malware">Malware</option>
+                    <option value="Network Security">Network Security</option>
+                    <option value="Cloud Security">Cloud Security</option>
+                  </select>
+                </div>
+
+                <button
+                  onClick={() => setShowAddArticle(true)}
+                  className="btn-primary"
+                >
+                  ➕ Add Article
+                </button>
               </div>
 
-              <div className="ioc-grid" style={{ textAlign: "left" }}>
-                <div className="ioc-card" style={{ cursor: "pointer" }} onClick={() => showToast("info", "Loading PIR-2026-04 runbook documentation...")}>
-                  <div className="ioc-value">PIR-2026-04: Ransomware response</div>
-                  <div className="ioc-type">Runbook Guide</div>
-                  <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "6px" }}>
-                    Triage playbook guidelines for database encryption events.
-                  </p>
+              <div className="kb-grid">
+                {knowledgeArticles.length === 0 ? (
+                  <p className="kb-empty">No Knowledge Base articles found.</p>
+                ) : (
+                  knowledgeArticles
+                    .filter((article) => {
+                      const matchesSearch =
+                        article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        article.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        article.author.toLowerCase().includes(searchTerm.toLowerCase());
+                      const matchesCategory =
+                        selectedCategory === "All" || article.category === selectedCategory;
+                      return matchesSearch && matchesCategory;
+                    })
+                    .map((article) => (
+                      <div className="kb-card" key={article.id}>
+                        <h2>{article.title}</h2>
+
+                        <div className="kb-label">Category</div>
+                        <div className="kb-value">{article.category}</div>
+
+                        <div className="kb-label">Content</div>
+                        <div className="kb-content">{article.content}</div>
+
+                        <div className="kb-footer">
+                          <span><b>Author:</b> {article.author}</span>
+                          <span>{article.createdAt ? new Date(article.createdAt).toLocaleString() : ""}</span>
+                        </div>
+
+                        <hr className="kb-divider"/>
+
+                        <div className="kb-actions">
+                          <button onClick={() => editArticle(article)} className="kb-edit">
+                            ✏ Edit
+                          </button>
+                          <button onClick={() => deleteArticle(article.id)} className="kb-delete">
+                            🗑 Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ===== ADD ARTICLE POPUP ===== */}
+          {showAddArticle && (
+            <div className="kb-modal-overlay">
+              <div className="kb-modal">
+                <h2>Add Knowledge Base Article</h2>
+
+                <input
+                  type="text"
+                  placeholder="Title"
+                  value={newArticle.title}
+                  onChange={(e) => setNewArticle({ ...newArticle, title: e.target.value })}
+                  className="kb-modal-input"
+                />
+
+                <input
+                  type="text"
+                  placeholder="Category"
+                  value={newArticle.category}
+                  onChange={(e) => setNewArticle({ ...newArticle, category: e.target.value })}
+                  className="kb-modal-input"
+                />
+
+                <textarea
+                  rows="5"
+                  placeholder="Content"
+                  value={newArticle.content}
+                  onChange={(e) => setNewArticle({ ...newArticle, content: e.target.value })}
+                  className="kb-modal-input kb-modal-textarea"
+                />
+
+                <input
+                  type="text"
+                  placeholder="Author"
+                  value={newArticle.author}
+                  onChange={(e) => setNewArticle({ ...newArticle, author: e.target.value })}
+                  className="kb-modal-input"
+                />
+
+                <div className="kb-modal-actions">
+                  <button onClick={() => setShowAddArticle(false)} className="btn-secondary">
+                    Cancel
+                  </button>
+                  <button onClick={saveArticle} className="btn-primary">
+                    💾 Save Article
+                  </button>
                 </div>
-                <div className="ioc-card" style={{ cursor: "pointer" }} onClick={() => showToast("info", "Loading MFA guidelines...")}>
-                  <div className="ioc-value">MFA enrollment guide</div>
-                  <div className="ioc-type">IT Operations</div>
-                  <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "6px" }}>
-                    Setup policies for Active Directory MFA integrations.
-                  </p>
+              </div>
+            </div>
+          )}
+
+          {/* ===== EDIT ARTICLE POPUP ===== */}
+          {showEditArticle && editingArticle && (
+            <div className="kb-modal-overlay">
+              <div className="kb-modal">
+                <h2>Edit Knowledge Base Article</h2>
+
+                <input
+                  type="text"
+                  value={editingArticle.title}
+                  onChange={(e) => setEditingArticle({ ...editingArticle, title: e.target.value })}
+                  className="kb-modal-input"
+                />
+
+                <input
+                  type="text"
+                  value={editingArticle.category}
+                  onChange={(e) => setEditingArticle({ ...editingArticle, category: e.target.value })}
+                  className="kb-modal-input"
+                />
+
+                <textarea
+                  rows="5"
+                  value={editingArticle.content}
+                  onChange={(e) => setEditingArticle({ ...editingArticle, content: e.target.value })}
+                  className="kb-modal-input kb-modal-textarea"
+                />
+
+                <input
+                  type="text"
+                  value={editingArticle.author}
+                  onChange={(e) => setEditingArticle({ ...editingArticle, author: e.target.value })}
+                  className="kb-modal-input"
+                />
+
+                <div className="kb-modal-actions">
+                  <button onClick={() => { setShowEditArticle(false); setEditingArticle(null); }} className="btn-secondary">
+                    Cancel
+                  </button>
+                  <button onClick={updateArticle} className="btn-primary">
+                    💾 Update Article
+                  </button>
                 </div>
               </div>
             </div>
@@ -3167,6 +3433,7 @@ function Dashboard() {
           </div>
         </div>
       )}
+      <Chatbot />
     </div>
   );
 }
