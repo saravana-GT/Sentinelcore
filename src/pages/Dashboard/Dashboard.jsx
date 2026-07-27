@@ -520,6 +520,27 @@ function Dashboard() {
     }
   };
 
+  // Auto-refresh asset details in real time while inspector modal is open
+  useEffect(() => {
+    if (!selectedAssetDetail) return;
+    const interval = setInterval(async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_URL}/api/assets/${selectedAssetDetail.id}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSelectedAssetDetail(data);
+        }
+      } catch (err) {
+        console.error("Failed to auto-refresh asset details:", err);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [selectedAssetDetail ? selectedAssetDetail.id : null]);
+
   // Phase 4: Vulnerability Management API Handlers
   const fetchDbVulnerabilities = async () => {
     try {
