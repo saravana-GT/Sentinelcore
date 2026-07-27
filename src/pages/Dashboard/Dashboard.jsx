@@ -115,6 +115,13 @@ function Dashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
+  // Sandbox File Scanner States
+  const [scanFileName, setScanFileName] = useState("invoice_billing.pdf.exe");
+  const [scanUrl, setScanUrl] = useState("http://malicious-server-ops.cc/invoice.exe");
+  const [scanStatus, setScanStatus] = useState("IDLE"); // 'IDLE', 'SCANNING', 'COMPLETED'
+  const [scanLogs, setScanLogs] = useState([]);
+  const [scanResult, setScanResult] = useState(null); // { safe: boolean, reason: string, details: string }
+
   // Asset Management API States
   const [dbAssets, setDbAssets] = useState([]);
   const [assetTotalPages, setAssetTotalPages] = useState(1);
@@ -926,6 +933,110 @@ function Dashboard() {
     const updated = [newEntry, ...auditLogs];
     setAuditLogs(updated);
     localStorage.setItem("audit_logs", JSON.stringify(updated));
+  };
+
+  const runFileScanSim = async () => {
+    if (!scanFileName.trim() || !scanUrl.trim()) {
+      showToast("warning", "Please specify both the filename and download URL.");
+      return;
+    }
+
+    setScanStatus("SCANNING");
+    setScanResult(null);
+    setScanLogs([]);
+
+    const logSteps = [
+      "🔄 Intercepting download request from browser/application process...",
+      "⬇️ Downloading file streams to secure isolated sandbox container...",
+      "🧮 Calculating file hash (SHA-256) for indicator tracking...",
+      "🔍 Querying global malware databases and Threat Intelligence databases...",
+      "🛡️ Executing heuristics code validation and signature inspection..."
+    ];
+
+    for (let i = 0; i < logSteps.length; i++) {
+      await new Promise(resolve => setTimeout(resolve, 600));
+      setScanLogs(prev => [...prev, logSteps[i]]);
+    }
+
+    const fileLower = scanFileName.toLowerCase();
+    const urlLower = scanUrl.toLowerCase();
+    const suspiciousExtensions = [".exe", ".scr", ".bat", ".js", ".cmd", ".vbs", ".msi", ".jar", ".ps1"];
+    const isSuspiciousExt = suspiciousExtensions.some(ext => fileLower.endsWith(ext));
+    const isSuspiciousKeyword = fileLower.includes("malware") || fileLower.includes("crack") || fileLower.includes("hack") || fileLower.includes("free_gift") || fileLower.includes("virus");
+    const isSuspiciousUrl = urlLower.includes("malicious") || urlLower.includes("unsecure") || urlLower.includes("crack") || urlLower.includes(".ru") || urlLower.includes(".cc") || urlLower.includes("attacker");
+
+    const isMalicious = isSuspiciousExt || isSuspiciousKeyword || isSuspiciousUrl;
+
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    if (isMalicious) {
+      const reason = isSuspiciousExt 
+        ? `Unsigned executable file format (${fileLower.split('.').pop()}) detected.` 
+        : isSuspiciousKeyword 
+          ? `Hacking/cracking vocabulary signature matched.` 
+          : `Source domain has a bad reputation ranking.`;
+
+      const resultObj = {
+        safe: false,
+        reason: "🚨 DANGEROUS / MALICIOUS",
+        details: `Threat Blocked: ${reason} (Severity: High). The download was aborted and the file quarantined.`
+      };
+      setScanResult(resultObj);
+      setScanStatus("COMPLETED");
+
+      showToast("critical", `Blocked file download threat: ${scanFileName}`);
+      addAuditLog(`File Download Scan blocked: ${scanFileName} (Malicious)`);
+
+      try {
+        const alertPayload = {
+          title: "Malware Download Blocked",
+          description: `Automatically quarantined malicious download of '${scanFileName}' from URL: ${scanUrl}. Indicator: ${reason}`,
+          severity: "CRITICAL",
+          source: "SentinelCore Download Guard"
+        };
+        await fetch(`${API_URL}/api/alerts`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(alertPayload)
+        });
+        fetchDbAlerts();
+      } catch (err) {
+        console.error("Failed to persist alert:", err);
+      }
+
+      const newInc = {
+        id: `INC-00${incidents.length + 1}`,
+        title: `Download Guard Alert: Malware '${scanFileName}' Blocked`,
+        severity: "P1",
+        status: "Open",
+        assignee: "saroo",
+        assigneeColor: "#b91c1c",
+        sla: "1h 30m",
+        created: new Date().toLocaleTimeString()
+      };
+      setIncidents(prev => [newInc, ...prev]);
+
+      const liveAlert = {
+        id: Date.now(),
+        title: "Malware Download Guard Intercept",
+        description: `Blocked malicious download: ${scanFileName} from unsecure server ${scanUrl.split('/')[2]}`,
+        severity: "CRITICAL",
+        source: "Download Guard",
+        status: "OPEN",
+        createdAt: new Date().toISOString()
+      };
+      setLiveFeed(prev => [liveAlert, ...prev]);
+
+    } else {
+      setScanResult({
+        safe: true,
+        reason: "✅ SAFE / SECURE",
+        details: "Clean file signatures. No threats identified. File download permitted."
+      });
+      setScanStatus("COMPLETED");
+      showToast("success", `File download permitted: ${scanFileName}`);
+      addAuditLog(`File Download Scan completed: ${scanFileName} (Safe)`);
+    }
   };
 
   // Toast helper
@@ -1915,6 +2026,78 @@ function Dashboard() {
                 }}>
                   Sync Global Feed
                 </button>
+              </div>
+
+              {/* ===== FILE DOWNLOAD SANBOX SCANNER ===== */}
+              <div className="panel" style={{ marginBottom: "24px", padding: "20px", textAlign: "left" }}>
+                <h3 style={{ fontSize: "16px", color: "var(--heading)", fontWeight: "700", marginBottom: "8px" }}>
+                  🛡️ Simulated File Download Sandbox Scanner
+                </h3>
+                <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
+                  Demonstrate SentinelCore's real-time interception and scanning of files downloaded from browsers or apps. Any detected malicious download will be quarantined, creating a Critical Alert, an Incident Card, and an Audit Trail log.
+                </p>
+
+                <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "16px" }}>
+                  <div style={{ flex: 1, minWidth: "250px" }}>
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", marginBottom: "6px" }}>
+                      Simulated File Name
+                    </label>
+                    <input 
+                      type="text" 
+                      className="form-input"
+                      placeholder="e.g. windows_patch_update.exe"
+                      value={scanFileName}
+                      onChange={(e) => setScanFileName(e.target.value)}
+                      style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "8px 12px", color: "var(--text)" }}
+                    />
+                  </div>
+                  <div style={{ flex: 2, minWidth: "300px" }}>
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", marginBottom: "6px" }}>
+                      Download Source URL
+                    </label>
+                    <input 
+                      type="text" 
+                      className="form-input"
+                      placeholder="e.g. http://unknown-site.ru/update.exe"
+                      value={scanUrl}
+                      onChange={(e) => setScanUrl(e.target.value)}
+                      style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "8px 12px", color: "var(--text)" }}
+                    />
+                  </div>
+                  <div style={{ display: "flex", alignItems: "flex-end" }}>
+                    <button 
+                      className="btn btn-primary" 
+                      onClick={runFileScanSim} 
+                      disabled={scanStatus === "SCANNING"}
+                      style={{ height: "38px", whiteSpace: "nowrap" }}
+                    >
+                      {scanStatus === "SCANNING" ? "⏳ Scanning File..." : "🚀 Download & Scan"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Scan logs / progress */}
+                {scanStatus !== "IDLE" && (
+                  <div style={{ background: "var(--bg-alt)", padding: "16px", borderRadius: "var(--radius)", border: "1px solid var(--border)", fontFamily: "monospace", fontSize: "12px", minHeight: "100px" }}>
+                    <div style={{ fontWeight: "bold", borderBottom: "1px solid var(--border)", paddingBottom: "6px", marginBottom: "8px", color: "var(--heading)" }}>
+                      Sandbox Analysis Logs
+                    </div>
+                    {scanLogs.map((log, idx) => (
+                      <div key={idx} style={{ marginBottom: "4px", animation: "fadeIn 0.2s" }}>{log}</div>
+                    ))}
+                    {scanStatus === "SCANNING" && (
+                      <div style={{ color: "var(--accent)", fontStyle: "italic", marginTop: "8px" }}>⏳ Processing heuristic check...</div>
+                    )}
+
+                    {/* Result */}
+                    {scanResult && (
+                      <div style={{ marginTop: "12px", padding: "12px", borderRadius: "var(--radius)", background: scanResult.safe ? "rgba(40, 122, 67, 0.1)" : "rgba(185, 28, 28, 0.1)", border: `1px solid ${scanResult.safe ? "var(--green)" : "var(--red)"}`, color: scanResult.safe ? "var(--green)" : "var(--red)" }}>
+                        <div style={{ fontWeight: "800", fontSize: "13px" }}>{scanResult.reason}</div>
+                        <div style={{ fontSize: "12px", marginTop: "4px" }}>{scanResult.details}</div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="ioc-grid">
