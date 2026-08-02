@@ -85,6 +85,23 @@ function Dashboard() {
   const [selectedExecution, setSelectedExecution] = useState(null);
   const [activePlaybookSubTab, setActivePlaybookSubTab] = useState("available"); // 'available' | 'history'
 
+  // Playbook Form States
+  const [playbookForm, setPlaybookForm] = useState({
+    id: null,
+    name: "",
+    description: "",
+    steps: []
+  });
+  const [newPlaybookStep, setNewPlaybookStep] = useState({
+    displayName: "",
+    description: "",
+    actionType: "LOG_MESSAGE",
+    parameters: "",
+    timeoutSeconds: 30,
+    continueOnFailure: false,
+    enabled: true
+  });
+
   // Live Telemetry & WebSockets States
   const [liveMetrics, setLiveMetrics] = useState({
     totalAssets: 0,
@@ -306,6 +323,117 @@ function Dashboard() {
     } catch (err) {
       console.error("Error executing playbook:", err);
       showToast("warning", "Error executing playbook.");
+    }
+  };
+
+  const handleSavePlaybook = async () => {
+    if (!playbookForm.name.trim()) {
+      showToast("warning", "Playbook name cannot be blank.");
+      return;
+    }
+    
+    for (let i = 0; i < playbookForm.steps.length; i++) {
+      if (!playbookForm.steps[i].displayName.trim()) {
+        showToast("warning", `Step ${i + 1} display name cannot be blank.`);
+        return;
+      }
+    }
+
+    const payload = {
+      name: playbookForm.name,
+      description: playbookForm.description,
+      createdBy: username || "ADMIN",
+      steps: playbookForm.steps.map((s, idx) => ({
+        stepOrder: idx + 1,
+        actionType: s.actionType,
+        displayName: s.displayName,
+        description: s.description,
+        parameters: s.parameters,
+        timeoutSeconds: s.timeoutSeconds || 30,
+        continueOnFailure: s.continueOnFailure,
+        enabled: s.enabled
+      }))
+    };
+
+    try {
+      const token = localStorage.getItem("token");
+      const url = playbookForm.id 
+        ? `${API_URL}/api/playbooks/${playbookForm.id}` 
+        : `${API_URL}/api/playbooks`;
+      const method = playbookForm.id ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        showToast("success", `Playbook ${playbookForm.id ? "updated" : "created"} successfully!`);
+        addAuditLog(`${playbookForm.id ? "Updated" : "Created"} playbook: ${playbookForm.name}`);
+        fetchPlaybooks();
+        setActivePlaybookSubTab("available");
+      } else {
+        const errorText = await res.text();
+        showToast("warning", `Failed to save playbook: ${errorText}`);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("warning", "Error saving playbook.");
+    }
+  };
+
+  const handleDeletePlaybook = async (playbookId, playbookName) => {
+    if (!window.confirm(`Are you sure you want to delete playbook: ${playbookName}?`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/playbooks/${playbookId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        showToast("success", `Deleted playbook: ${playbookName}`);
+        addAuditLog(`Deleted playbook: ${playbookName}`);
+        fetchPlaybooks();
+      } else {
+        showToast("warning", "Failed to delete playbook.");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("warning", "Error deleting playbook.");
+    }
+  };
+
+  const handleTogglePlaybookEnabled = async (playbookId, isCurrentlyEnabled, playbookName) => {
+    try {
+      const token = localStorage.getItem("token");
+      const action = isCurrentlyEnabled ? "disable" : "enable";
+      const res = await fetch(`${API_URL}/api/playbooks/${playbookId}/${action}`, {
+        method: "PATCH",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        showToast("success", `${isCurrentlyEnabled ? "Disabled" : "Enabled"} playbook: ${playbookName}`);
+        addAuditLog(`${isCurrentlyEnabled ? "Disabled" : "Enabled"} playbook: ${playbookName}`);
+        fetchPlaybooks();
+      } else {
+        showToast("warning", "Failed to toggle playbook status.");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("warning", "Error toggling playbook status.");
     }
   };
 
@@ -2764,7 +2892,7 @@ function Dashboard() {
                   <h2 style={{ fontSize: "20px", color: "var(--heading)", fontWeight: "800" }}>Incident Response Playbooks</h2>
                   <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>SOAR response scripts</p>
                 </div>
-                <div style={{ display: "flex", gap: "8px" }}>
+                 <div style={{ display: "flex", gap: "8px" }}>
                   <button 
                     className={`btn ${activePlaybookSubTab === "available" ? "btn-primary" : "btn-ghost"}`} 
                     onClick={() => setActivePlaybookSubTab("available")}
@@ -2776,6 +2904,15 @@ function Dashboard() {
                     onClick={() => setActivePlaybookSubTab("history")}
                   >
                     Execution Logs ({executions.length})
+                  </button>
+                  <button 
+                    className={`btn ${activePlaybookSubTab === "create" ? "btn-primary" : "btn-ghost"}`} 
+                    onClick={() => {
+                      setPlaybookForm({ id: null, name: "", description: "", steps: [] });
+                      setActivePlaybookSubTab("create");
+                    }}
+                  >
+                    + Create Playbook
                   </button>
                 </div>
               </div>
@@ -2790,13 +2927,47 @@ function Dashboard() {
                           <div className="panel-title">{playbook.name}</div>
                           <div className="panel-subtitle" style={{ marginTop: "4px" }}>{playbook.description}</div>
                         </div>
-                        <button 
-                          className="btn btn-primary" 
-                          style={{ padding: "6px 12px", fontSize: "12px" }}
-                          onClick={() => executePlaybook(playbook.id, playbook.name)}
-                        >
-                          ▶ Run Playbook
-                        </button>
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <span className={`badge ${playbook.enabled ? "badge-green" : "badge-low"}`} style={{ alignSelf: "center", textTransform: "uppercase" }}>
+                            {playbook.enabled ? "Enabled" : "Disabled"}
+                          </span>
+                          <button 
+                            className="btn btn-secondary" 
+                            style={{ padding: "6px 12px", fontSize: "12px" }}
+                            onClick={() => handleTogglePlaybookEnabled(playbook.id, playbook.enabled, playbook.name)}
+                          >
+                            {playbook.enabled ? "Disable" : "Enable"}
+                          </button>
+                          <button 
+                            className="btn btn-secondary" 
+                            style={{ padding: "6px 12px", fontSize: "12px" }}
+                            onClick={() => {
+                              setPlaybookForm({
+                                id: playbook.id,
+                                name: playbook.name,
+                                description: playbook.description,
+                                steps: playbook.steps || []
+                              });
+                              setActivePlaybookSubTab("edit");
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            className="btn btn-secondary" 
+                            style={{ padding: "6px 12px", fontSize: "12px", background: "rgba(239, 68, 68, 0.2)", color: "var(--red)", borderColor: "var(--red)" }}
+                            onClick={() => handleDeletePlaybook(playbook.id, playbook.name)}
+                          >
+                            Delete
+                          </button>
+                          <button 
+                            className="btn btn-primary" 
+                            style={{ padding: "6px 12px", fontSize: "12px" }}
+                            onClick={() => executePlaybook(playbook.id, playbook.name)}
+                          >
+                            ▶ Run Playbook
+                          </button>
+                        </div>
                       </div>
                       <div className="panel-body">
                         <div style={{ display: "flex", alignItems: "center", overflowX: "auto", padding: "8px 0" }}>
@@ -2834,6 +3005,238 @@ function Dashboard() {
                       Loading preseeded SOAR playbooks from database...
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Sub-tab 3 & 4: Create/Edit Playbook Form */}
+              {(activePlaybookSubTab === "create" || activePlaybookSubTab === "edit") && (
+                <div className="panel" style={{ padding: "20px", textAlign: "left" }}>
+                  <h3 style={{ fontSize: "16px", color: "var(--heading)", fontWeight: "700", marginBottom: "16px" }}>
+                    {activePlaybookSubTab === "create" ? "🆕 Create Security Automation Playbook" : "✏️ Edit Security Automation Playbook"}
+                  </h3>
+                  
+                  <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "20px" }}>
+                    <div>
+                      <label style={{ display: "block", fontSize: "12px", fontWeight: "600", textTransform: "uppercase", marginBottom: "6px" }}>
+                        Playbook Name
+                      </label>
+                      <input 
+                        type="text" 
+                        className="form-input" 
+                        placeholder="e.g. Isolate Ransomware Source Host"
+                        value={playbookForm.name}
+                        onChange={(e) => setPlaybookForm(prev => ({ ...prev, name: e.target.value }))}
+                        style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "8px 12px", color: "var(--text)" }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: "block", fontSize: "12px", fontWeight: "600", textTransform: "uppercase", marginBottom: "6px" }}>
+                        Description
+                      </label>
+                      <textarea 
+                        className="form-input" 
+                        placeholder="Detail the security response automation logic of this playbook..."
+                        value={playbookForm.description}
+                        onChange={(e) => setPlaybookForm(prev => ({ ...prev, description: e.target.value }))}
+                        style={{ width: "100%", height: "80px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "8px 12px", color: "var(--text)", resize: "none" }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: "1px solid var(--border)", paddingTop: "20px", marginBottom: "20px" }}>
+                    <h4 style={{ fontSize: "14px", color: "var(--heading)", fontWeight: "600", marginBottom: "12px" }}>
+                      ⚙️ Playbook Steps / Actions ({playbookForm.steps.length})
+                    </h4>
+
+                    {/* Step Builder Form */}
+                    <div style={{ background: "var(--bg-alt)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "16px", marginBottom: "20px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px", marginBottom: "12px" }}>
+                        <div>
+                          <label style={{ display: "block", fontSize: "10px", fontWeight: "600", marginBottom: "4px" }}>Action Type</label>
+                          <select 
+                            className="form-input"
+                            value={newPlaybookStep.actionType}
+                            onChange={(e) => setNewPlaybookStep(prev => ({ ...prev, actionType: e.target.value }))}
+                            style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "6px 10px", color: "var(--text)" }}
+                          >
+                            <option value="LOG_MESSAGE">Log Message</option>
+                            <option value="NOTIFY_ANALYST">Notify Analyst</option>
+                            <option value="ISOLATE_HOST">Isolate Host</option>
+                            <option value="BLOCK_IP">Block IP</option>
+                            <option value="RUN_SCRIPT">Run Script</option>
+                            <option value="GENERATE_REPORT">Generate Report</option>
+                            <option value="CALL_REST_API">Call REST API</option>
+                            <option value="DISABLE_USER">Disable User</option>
+                            <option value="ADD_INCIDENT_COMMENT">Add Incident Comment</option>
+                            <option value="UPDATE_INCIDENT">Update Incident</option>
+                            <option value="DELAY">Delay</option>
+                            <option value="CUSTOM">Custom Action</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label style={{ display: "block", fontSize: "10px", fontWeight: "600", marginBottom: "4px" }}>Step Display Name</label>
+                          <input 
+                            type="text" 
+                            className="form-input" 
+                            placeholder="e.g. Notify SOC Slack channel"
+                            value={newPlaybookStep.displayName}
+                            onChange={(e) => setNewPlaybookStep(prev => ({ ...prev, displayName: e.target.value }))}
+                            style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "6px 10px", color: "var(--text)" }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: "block", fontSize: "10px", fontWeight: "600", marginBottom: "4px" }}>Step Description</label>
+                          <input 
+                            type="text" 
+                            className="form-input" 
+                            placeholder="Brief details..."
+                            value={newPlaybookStep.description}
+                            onChange={(e) => setNewPlaybookStep(prev => ({ ...prev, description: e.target.value }))}
+                            style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "6px 10px", color: "var(--text)" }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: "block", fontSize: "10px", fontWeight: "600", marginBottom: "4px" }}>Timeout (Seconds)</label>
+                          <input 
+                            type="number" 
+                            className="form-input" 
+                            min="1" 
+                            max="3600"
+                            value={newPlaybookStep.timeoutSeconds}
+                            onChange={(e) => setNewPlaybookStep(prev => ({ ...prev, timeoutSeconds: parseInt(e.target.value) || 30 }))}
+                            style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "6px 10px", color: "var(--text)" }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ marginBottom: "12px" }}>
+                        <label style={{ display: "block", fontSize: "10px", fontWeight: "600", marginBottom: "4px" }}>
+                          Parameters (JSON format or comma-separated pairs, e.g. {"{\"ip\": \"8.8.8.8\"}"})
+                        </label>
+                        <input 
+                          type="text" 
+                          className="form-input" 
+                          placeholder='{"key": "value"}'
+                          value={newPlaybookStep.parameters}
+                          onChange={(e) => setNewPlaybookStep(prev => ({ ...prev, parameters: e.target.value }))}
+                          style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "6px 10px", color: "var(--text)", fontFamily: "IBM Plex Mono" }}
+                        />
+                      </div>
+
+                      <div style={{ display: "flex", gap: "20px", alignItems: "center", marginBottom: "16px" }}>
+                        <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", cursor: "pointer" }}>
+                          <input 
+                            type="checkbox"
+                            checked={newPlaybookStep.continueOnFailure}
+                            onChange={(e) => setNewPlaybookStep(prev => ({ ...prev, continueOnFailure: e.target.checked }))}
+                          />
+                          Continue on failure
+                        </label>
+
+                        <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", cursor: "pointer" }}>
+                          <input 
+                            type="checkbox"
+                            checked={newPlaybookStep.enabled}
+                            onChange={(e) => setNewPlaybookStep(prev => ({ ...prev, enabled: e.target.checked }))}
+                          />
+                          Enabled
+                        </label>
+                      </div>
+
+                      <button 
+                        className="btn btn-secondary" 
+                        type="button"
+                        onClick={() => {
+                          if (!newPlaybookStep.displayName.trim()) {
+                            showToast("warning", "Step display name cannot be empty.");
+                            return;
+                          }
+                          setPlaybookForm(prev => ({
+                            ...prev,
+                            steps: [...prev.steps, { ...newPlaybookStep, stepOrder: prev.steps.length + 1 }]
+                          }));
+                          setNewPlaybookStep({
+                            displayName: "",
+                            description: "",
+                            actionType: "LOG_MESSAGE",
+                            parameters: "",
+                            timeoutSeconds: 30,
+                            continueOnFailure: false,
+                            enabled: true
+                          });
+                          showToast("success", "Added step to playbook list.");
+                        }}
+                      >
+                        ➕ Add Step to List
+                      </button>
+                    </div>
+
+                    {/* Ordered List of Steps in Playbook */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                      {playbookForm.steps.map((step, index) => (
+                        <div key={index} style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "10px 14px",
+                          border: "1px solid var(--border)",
+                          borderRadius: "var(--radius)",
+                          background: "var(--surface)"
+                        }}>
+                          <div style={{ textAlign: "left" }}>
+                            <div style={{ fontSize: "10px", color: "var(--text-dim)", fontFamily: "IBM Plex Mono" }}>
+                              Step {index + 1} ({step.actionType})
+                            </div>
+                            <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--heading)", marginTop: "2px" }}>
+                              {step.displayName}
+                            </div>
+                            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
+                              {step.description} | Parameters: <code>{step.parameters || "None"}</code>
+                            </div>
+                          </div>
+                          
+                          <div style={{ display: "flex", gap: "8px" }}>
+                            <button 
+                              className="btn btn-ghost" 
+                              style={{ color: "var(--red)", padding: "4px 8px", fontSize: "11px" }}
+                              onClick={() => {
+                                setPlaybookForm(prev => ({
+                                  ...prev,
+                                  steps: prev.steps.filter((_, idx) => idx !== index).map((s, idx) => ({ ...s, stepOrder: idx + 1 }))
+                                }));
+                              }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {playbookForm.steps.length === 0 && (
+                        <div style={{ padding: "20px", textAlign: "center", border: "1px dashed var(--border)", borderRadius: "var(--radius)", color: "var(--text-dim)", fontSize: "12px" }}>
+                          No steps added to this playbook yet.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: "12px", borderTop: "1px solid var(--border)", paddingTop: "20px", justifyContent: "flex-end" }}>
+                    <button 
+                      className="btn btn-ghost" 
+                      onClick={() => setActivePlaybookSubTab("available")}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      className="btn btn-primary" 
+                      onClick={handleSavePlaybook}
+                    >
+                      💾 Save Playbook
+                    </button>
+                  </div>
                 </div>
               )}
 
