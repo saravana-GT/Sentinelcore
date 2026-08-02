@@ -122,6 +122,12 @@ function Dashboard() {
   const [scanLogs, setScanLogs] = useState([]);
   const [scanResult, setScanResult] = useState(null); // { safe: boolean, reason: string, details: string }
 
+  // AbuseIPDB Threat Intel Lookup States
+  const [lookupIpAddress, setLookupIpAddress] = useState("8.8.8.8");
+  const [lookupStatus, setLookupStatus] = useState("IDLE"); // 'IDLE', 'LOADING', 'SUCCESS', 'ERROR'
+  const [lookupReport, setLookupReport] = useState(null);
+  const [lookupError, setLookupError] = useState("");
+
   // Asset Management API States
   const [dbAssets, setDbAssets] = useState([]);
   const [assetTotalPages, setAssetTotalPages] = useState(1);
@@ -1057,6 +1063,40 @@ function Dashboard() {
       setScanStatus("COMPLETED");
       showToast("success", `File download permitted: ${scanFileName}`);
       addAuditLog(`File Download Scan completed: ${scanFileName} (Safe)`);
+    }
+  };
+
+  const runIpReputationLookup = async () => {
+    if (!lookupIpAddress.trim()) {
+      showToast("warning", "Please enter a valid IP Address.");
+      return;
+    }
+
+    setLookupStatus("LOADING");
+    setLookupReport(null);
+    setLookupError("");
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/threats/check-ip?ipAddress=${encodeURIComponent(lookupIpAddress.trim())}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to retrieve reputation report.");
+      }
+
+      const report = await res.json();
+      setLookupReport(report);
+      setLookupStatus("SUCCESS");
+      showToast("success", `Reputation report loaded for IP: ${lookupIpAddress}`);
+      addAuditLog(`Performed AbuseIPDB reputation lookup for IP: ${lookupIpAddress}`);
+    } catch (err) {
+      console.error(err);
+      setLookupError(err.message || "An unexpected error occurred during API lookup.");
+      setLookupStatus("ERROR");
+      showToast("warning", `Lookup failed: ${err.message}`);
     }
   };
 
@@ -2065,8 +2105,101 @@ function Dashboard() {
                 </button>
               </div>
 
-              {/* ===== FILE DOWNLOAD SANBOX SCANNER ===== */}
+              {/* ===== ABUSEIPDB IP REPUTATION LOOKUP ===== */}
               <div className="panel" style={{ marginBottom: "24px", padding: "20px", textAlign: "left" }}>
+                <h3 style={{ fontSize: "16px", color: "var(--heading)", fontWeight: "700", marginBottom: "8px" }}>
+                  🔍 AbuseIPDB Threat Intelligence Lookup
+                </h3>
+                <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
+                  Query AbuseIPDB database in real time to fetch the reputation rating, location, ISP information, and historical reporting telemetry for any IPv4 or IPv6 address.
+                </p>
+
+                <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+                  <div style={{ flex: 1 }}>
+                    <input 
+                      type="text" 
+                      className="form-input"
+                      placeholder="Enter IPv4 or IPv6 Address (e.g. 8.8.8.8, 2001:4860:4860::8888)"
+                      value={lookupIpAddress}
+                      onChange={(e) => setLookupIpAddress(e.target.value)}
+                      style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "8px 12px", color: "var(--text)" }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") runIpReputationLookup();
+                      }}
+                    />
+                  </div>
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={runIpReputationLookup} 
+                    disabled={lookupStatus === "LOADING"}
+                    style={{ height: "38px", whiteSpace: "nowrap" }}
+                  >
+                    {lookupStatus === "LOADING" ? "⏳ Fetching..." : "🔍 Check Reputation"}
+                  </button>
+                </div>
+
+                {lookupStatus === "ERROR" && (
+                  <div style={{ padding: "10px 14px", background: "rgba(239, 68, 68, 0.1)", border: "1px solid var(--red)", color: "var(--red)", borderRadius: "var(--radius)", fontSize: "12px", marginBottom: "16px" }}>
+                    ❌ <b>Lookup Failed:</b> {lookupError}
+                  </div>
+                )}
+
+                {lookupStatus === "SUCCESS" && lookupReport && (
+                  <div style={{ background: "var(--bg-alt)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "10px", marginBottom: "12px" }}>
+                      <span style={{ fontSize: "14px", fontWeight: "700", color: "var(--heading)" }}>
+                        Reputation Report: <span style={{ color: "var(--accent)" }}>{lookupReport.ipAddress}</span>
+                      </span>
+                      <span className={`badge ${
+                        lookupReport.threatLevel === "CRITICAL" ? "badge-critical" :
+                        lookupReport.threatLevel === "HIGH" ? "badge-high" :
+                        lookupReport.threatLevel === "MEDIUM" ? "badge-warning" : "badge-success"
+                      }`} style={{ textTransform: "uppercase" }}>
+                        {lookupReport.threatLevel} RISK
+                      </span>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px 20px" }}>
+                      <div style={{ fontSize: "12px" }}>
+                        <span style={{ color: "var(--text-dim)" }}>IP Version:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.ipVersion}</strong>
+                      </div>
+                      <div style={{ fontSize: "12px" }}>
+                        <span style={{ color: "var(--text-dim)" }}>Public IP:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.isPublic}</strong>
+                      </div>
+                      <div style={{ fontSize: "12px" }}>
+                        <span style={{ color: "var(--text-dim)" }}>Whitelisted:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.isWhitelisted}</strong>
+                      </div>
+                      <div style={{ fontSize: "12px" }}>
+                        <span style={{ color: "var(--text-dim)" }}>Abuse Confidence Score:</span> <strong style={{ color: lookupReport.abuseConfidenceScore === "0%" ? "var(--green)" : "var(--amber)" }}>{lookupReport.abuseConfidenceScore}</strong>
+                      </div>
+                      <div style={{ fontSize: "12px" }}>
+                        <span style={{ color: "var(--text-dim)" }}>Country Code:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.countryCode}</strong>
+                      </div>
+                      <div style={{ fontSize: "12px" }}>
+                        <span style={{ color: "var(--text-dim)" }}>Usage Type:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.usageType}</strong>
+                      </div>
+                      <div style={{ fontSize: "12px" }}>
+                        <span style={{ color: "var(--text-dim)" }}>ISP Name:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.ispName}</strong>
+                      </div>
+                      <div style={{ fontSize: "12px" }}>
+                        <span style={{ color: "var(--text-dim)" }}>Domain Name:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.domainName}</strong>
+                      </div>
+                      <div style={{ fontSize: "12px" }}>
+                        <span style={{ color: "var(--text-dim)" }}>Total Reports:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.totalReports}</strong>
+                      </div>
+                      <div style={{ fontSize: "12px" }}>
+                        <span style={{ color: "var(--text-dim)" }}>Distinct Reporters:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.distinctReporters}</strong>
+                      </div>
+                      <div style={{ fontSize: "12px", gridColumn: "1 / -1" }}>
+                        <span style={{ color: "var(--text-dim)" }}>Last Reported At:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.lastReportedAt}</strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ===== FILE DOWNLOAD SANBOX SCANNER ===== */}
+              <div className="panel" style={{ padding: "20px", textAlign: "left" }}>
                 <h3 style={{ fontSize: "16px", color: "var(--heading)", fontWeight: "700", marginBottom: "8px" }}>
                   🛡️ Simulated File Download Sandbox Scanner
                 </h3>
