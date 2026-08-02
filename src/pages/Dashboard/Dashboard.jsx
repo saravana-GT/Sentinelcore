@@ -2035,15 +2035,31 @@ function Dashboard() {
 
                   // Generate dynamic event stream alert
                   const newAlert = {
-                    id: Date.now(),
                     title: "Threat Intel Alert: Malicious C2 IP Flagged",
                     description: "Outbound connection attempt to malicious C2 IP 185.220.101.4 detected on host SPIDEY",
                     severity: "CRITICAL",
-                    source: "Threat Intel",
-                    status: "OPEN",
-                    createdAt: new Date().toISOString()
+                    source: "Threat Intel"
                   };
-                  setEventStream(prev => [newAlert, ...prev]);
+                  
+                  try {
+                    fetch(`${API_URL}/api/alerts`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(newAlert)
+                    }).then(res => {
+                      if (res.ok) fetchDbAlerts();
+                    });
+                  } catch (e) {
+                    console.error("Failed to save threat alert:", e);
+                  }
+
+                  const liveAlert = {
+                    text: `${newAlert.title}: ${newAlert.description}`,
+                    source: "threat intel",
+                    time: new Date().toLocaleTimeString(),
+                    type: "critical"
+                  };
+                  setLiveFeed(prev => [liveAlert, ...prev]);
                 }}>
                   Sync Global Feed
                 </button>
