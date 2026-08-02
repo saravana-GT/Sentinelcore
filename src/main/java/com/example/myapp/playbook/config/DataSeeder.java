@@ -44,6 +44,10 @@ public class DataSeeder implements CommandLineRunner {
             ));
             log.info("DataSeeder: 3 sample playbooks inserted successfully.");
         }
+
+        if (alertRepository.count() == 0) {
+            seedAlerts();
+        }
     }
 
     private void seedAlerts() {
