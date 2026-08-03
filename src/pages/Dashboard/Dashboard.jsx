@@ -3955,7 +3955,7 @@ function Dashboard() {
                     <div><span style={{ fontSize: "10px", color: "var(--text-dim)" }}>Total Disk</span><div style={{ fontSize: "12px", fontWeight: "bold" }}>{selectedAssetDetail.disk || "512.0 GB"}</div></div>
                     <div><span style={{ fontSize: "10px", color: "var(--text-dim)" }}>Architecture</span><div style={{ fontSize: "12px", fontWeight: "bold" }}>{selectedAssetDetail.architecture || "x86_64"}</div></div>
                     <div><span style={{ fontSize: "10px", color: "var(--text-dim)" }}>Owner / Dept</span><div style={{ fontSize: "12px", fontWeight: "bold" }}>{selectedAssetDetail.owner || "System"} ({selectedAssetDetail.department || "Infra"})</div></div>
-                    <div><span style={{ fontSize: "10px", color: "var(--text-dim)" }}>Last Seen Ping</span><div style={{ fontSize: "12px", fontWeight: "bold" }}>{selectedAssetDetail.lastSeen ? new Date(selectedAssetDetail.lastSeen).toLocaleTimeString() : "Just now"}</div></div>
+                    <div><span style={{ fontSize: "10px", color: "var(--text-dim)" }}>Last Seen Ping</span><div style={{ fontSize: "12px", fontWeight: "bold" }}>{selectedAssetDetail.lastSeen ? new Date(selectedAssetDetail.lastSeen.endsWith("Z") ? selectedAssetDetail.lastSeen : selectedAssetDetail.lastSeen + "Z").toLocaleTimeString() : "Just now"}</div></div>
                   </div>
 
                   {/* Sub-tabs inside Modal */}
@@ -3985,7 +3985,7 @@ function Dashboard() {
 
                   {/* Sub-tab 1: Processes */}
                   {assetDetailSubTab === "processes" && (
-                    <div className="table-container" style={{ maxHeight: "320px", overflowY: "auto", minHeight: "200px" }}>
+                    <div className="table-container" style={{ maxHeight: "320px", overflowY: "auto", minHeight: "200px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
                       <table className="data-table">
                         <thead>
                           <tr>
@@ -4015,7 +4015,7 @@ function Dashboard() {
 
                   {/* Sub-tab 2: Software */}
                   {assetDetailSubTab === "software" && (
-                    <div className="table-container" style={{ maxHeight: "320px", overflowY: "auto", minHeight: "200px" }}>
+                    <div className="table-container" style={{ maxHeight: "320px", overflowY: "auto", minHeight: "200px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
                       <table className="data-table">
                         <thead>
                           <tr>
@@ -4045,7 +4045,7 @@ function Dashboard() {
 
                   {/* Sub-tab 3: Network */}
                   {assetDetailSubTab === "network" && (
-                    <div className="table-container">
+                    <div className="table-container" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
                       <table className="data-table">
                         <thead>
                           <tr>
