@@ -14,7 +14,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/knowledgebase")
-@CrossOrigin(origins = "*")
 public class KnowledgeBaseController {
 
     @Autowired

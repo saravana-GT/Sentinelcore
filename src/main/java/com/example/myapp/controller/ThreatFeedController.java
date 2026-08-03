@@ -16,7 +16,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/threats")
-@CrossOrigin(origins = "*")
 public class ThreatFeedController {
 
     @Autowired
