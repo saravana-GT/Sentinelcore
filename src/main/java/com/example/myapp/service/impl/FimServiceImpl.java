@@ -28,7 +28,7 @@ public class FimServiceImpl implements FimService {
 
     @PostConstruct
     public void init() {
-        seedDefaultFimEvents();
+        // seedDefaultFimEvents();
     }
 
     @Override

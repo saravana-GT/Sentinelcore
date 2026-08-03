@@ -17,7 +17,7 @@ public class ThreatFeedServiceImpl implements ThreatFeedService {
 
     @PostConstruct
     public void init() {
-        loadMockFeeds();
+        // loadMockFeeds();
     }
 
     @Override

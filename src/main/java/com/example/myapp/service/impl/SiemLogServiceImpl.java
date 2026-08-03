@@ -24,7 +24,7 @@ public class SiemLogServiceImpl implements SiemLogService {
 
     @PostConstruct
     public void init() {
-        seedDefaultLogs();
+        // seedDefaultLogs();
     }
 
     @Override
