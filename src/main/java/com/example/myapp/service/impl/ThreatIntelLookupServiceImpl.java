@@ -15,20 +15,13 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
-import java.util.regex.Pattern;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 @Service
 public class ThreatIntelLookupServiceImpl implements ThreatIntelLookupService {
 
     private static final Logger log = LoggerFactory.getLogger(ThreatIntelLookupServiceImpl.class);
-
-    private static final Pattern IPV4_PATTERN = Pattern.compile(
-            "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-    );
-
-    private static final Pattern IPV6_PATTERN = Pattern.compile(
-            "^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$"
-    );
 
     private final WebClient webClient;
     private final AbuseIPDBConfig apiConfig;
@@ -48,19 +41,16 @@ public class ThreatIntelLookupServiceImpl implements ThreatIntelLookupService {
 
         String targetIp = ipAddress.trim();
 
-        boolean isV4 = IPV4_PATTERN.matcher(targetIp).matches();
-        boolean isV6 = IPV6_PATTERN.matcher(targetIp).matches();
-
-        if (!isV4 && !isV6) {
+        if (!isValidIp(targetIp)) {
             log.warn("[-] IP Address validation failed for input: {}", targetIp);
-            throw new ThreatIntelligenceException("Invalid IP Address");
+            throw new IllegalArgumentException("Invalid IP address. Please enter a valid IPv4 or IPv6 address.");
         }
 
         String apiKey = apiConfig.getApiKey();
 
         if (apiKey == null || apiKey.isEmpty()) {
             log.warn("[!] AbuseIPDB API key not configured. Returning mock threat report.");
-            return generateMockReport(targetIp, isV4);
+            return generateMockReport(targetIp);
         }
 
         log.info("[*] Fetching IP data from AbuseIPDB API v2: {}", targetIp);
@@ -70,6 +60,8 @@ public class ThreatIntelLookupServiceImpl implements ThreatIntelLookupService {
                     .uri(uriBuilder -> uriBuilder
                             .path("/check")
                             .queryParam("ipAddress", targetIp)
+                            .queryParam("maxAgeInDays", 90)
+                            .queryParam("verbose", "")
                             .build())
                     .header("Key", apiKey)
                     .header("Accept", "application/json")
@@ -77,56 +69,79 @@ public class ThreatIntelLookupServiceImpl implements ThreatIntelLookupService {
                     .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), clientResponse -> {
                         HttpStatus code = (HttpStatus) clientResponse.statusCode();
                         if (code == HttpStatus.UNAUTHORIZED) {
-                            return Mono.error(new ThreatIntelligenceException("Invalid API Key (401 Unauthorized)"));
+                            return Mono.error(new ThreatIntelligenceException("ERROR: AbuseIPDB API key is invalid."));
                         } else if (code == HttpStatus.FORBIDDEN) {
-                            return Mono.error(new ThreatIntelligenceException("Forbidden (403 Access Denied)"));
+                            return Mono.error(new ThreatIntelligenceException("ERROR: Access to AbuseIPDB is forbidden."));
                         } else if (code == HttpStatus.TOO_MANY_REQUESTS) {
-                            return Mono.error(new ThreatIntelligenceException("AbuseIPDB Rate Limit Exceeded (429)"));
+                            return Mono.error(new ThreatIntelligenceException("ERROR: AbuseIPDB API rate limit exceeded. Please try again later."));
                         } else {
-                            return Mono.error(new ThreatIntelligenceException("AbuseIPDB API error: " + code.value()));
+                            return Mono.error(new ThreatIntelligenceException("ERROR: AbuseIPDB returned HTTP " + code.value()));
                         }
                     })
                     .bodyToMono(AbuseIPDBResponseDTO.class)
                     .block();
 
             if (response == null || response.getData() == null) {
-                throw new ThreatIntelligenceException("Empty response: No Data returned from AbuseIPDB.");
+                throw new ThreatIntelligenceException("ERROR: No data received from AbuseIPDB for IP: " + targetIp);
             }
 
             AbuseIPDBDataDTO data = response.getData();
             log.info("[+] Successfully retrieved reputation report for IP: {}", targetIp);
 
+            int score = data.getAbuseConfidenceScore() != null ? data.getAbuseConfidenceScore() : 0;
+            ThreatLevel threatLevel = ThreatLevel.fromScore(score);
+
             return ThreatIntelligenceReport.builder()
-                    .ipAddress(data.getIpAddress())
-                    .isPublic(data.isPublic() ? "Yes" : "No")
-                    .ipVersion(data.getIpVersion() == 6 ? "IPv6" : "IPv4")
-                    .isWhitelisted(data.isWhitelisted() ? "Yes" : "No")
-                    .abuseConfidenceScore(data.getAbuseConfidenceScore() + "%")
-                    .countryCode(data.getCountryCode() != null ? data.getCountryCode() : "N/A")
-                    .usageType(data.getUsageType() != null ? data.getUsageType() : "N/A")
-                    .ispName(data.getIsp() != null ? data.getIsp() : "Unknown")
-                    .domainName(data.getDomain() != null ? data.getDomain() : "Unknown")
-                    .totalReports(data.getTotalReports())
-                    .distinctReporters(data.getNumDistinctUsers())
-                    .lastReportedAt(data.getLastReportedAt() != null ? data.getLastReportedAt() : "Never")
-                    .threatLevel(ThreatLevel.fromScore(data.getAbuseConfidenceScore()))
+                    .ipAddress(orNA(data.getIpAddress()))
+                    .isPublic(boolToYesNo(data.getIsPublic()))
+                    .ipVersion(data.getIpVersion() != null ? "IPv" + data.getIpVersion() : "N/A")
+                    .isWhitelisted(boolToYesNo(data.getIsWhitelisted()))
+                    .abuseConfidenceScore(score + "%")
+                    .countryCode(orNA(data.getCountryCode()))
+                    .usageType(orNA(data.getUsageType()))
+                    .isp(orNA(data.getIsp()))
+                    .domain(orNA(data.getDomain()))
+                    .totalReports(data.getTotalReports() != null ? String.valueOf(data.getTotalReports()) : "0")
+                    .numDistinctUsers(data.getNumDistinctUsers() != null ? String.valueOf(data.getNumDistinctUsers()) : "0")
+                    .lastReportedAt(orNA(data.getLastReportedAt()))
+                    .threatLevel(threatLevel)
                     .build();
 
         } catch (WebClientResponseException e) {
             log.error("[-] WebClient API response failure: {}", e.getMessage());
-            throw new ThreatIntelligenceException("Network connection failed to AbuseIPDB: " + e.getStatusText(), e);
+            throw new ThreatIntelligenceException("ERROR: AbuseIPDB returned HTTP " + e.getStatusCode().value(), e);
         } catch (Exception e) {
             if (e instanceof ThreatIntelligenceException) {
                 throw (ThreatIntelligenceException) e;
             }
             log.error("[-] Unexpected threat intelligence lookup failure: {}", e.getMessage());
-            throw new ThreatIntelligenceException("Generic Error: Unexpected threat lookup exception: " + e.getMessage(), e);
+            throw new ThreatIntelligenceException("ERROR: Unexpected failure during threat lookup. Please try again.", e);
         }
     }
 
-    private ThreatIntelligenceReport generateMockReport(String ipAddress, boolean isV4) {
+    private boolean isValidIp(String ip) {
+        if (ip == null || ip.isBlank()) return false;
+        try {
+            InetAddress address = InetAddress.getByName(ip);
+            return address.getHostAddress().equals(ip);
+        } catch (UnknownHostException e) {
+            return false;
+        }
+    }
+
+    private String orNA(String value) {
+        return (value != null && !value.isBlank()) ? value : "N/A";
+    }
+
+    private String boolToYesNo(Boolean value) {
+        if (value == null) return "N/A";
+        return value ? "Yes" : "No";
+    }
+
+    private ThreatIntelligenceReport generateMockReport(String ipAddress) {
         boolean isPrivate = ipAddress.startsWith("192.168.") || ipAddress.startsWith("10.") || ipAddress.startsWith("172.16.");
         int mockScore = isPrivate ? 0 : Math.abs(ipAddress.hashCode()) % 100;
+        boolean isV4 = !ipAddress.contains(":");
         
         return ThreatIntelligenceReport.builder()
                 .ipAddress(ipAddress)
@@ -136,10 +151,10 @@ public class ThreatIntelLookupServiceImpl implements ThreatIntelLookupService {
                 .abuseConfidenceScore(mockScore + "%")
                 .countryCode(isPrivate ? "LCL" : "US")
                 .usageType(isPrivate ? "Private Subnet" : "Local LAN / Reserved")
-                .ispName(isPrivate ? "Local Network Authority" : "Google LLC")
-                .domainName(isPrivate ? "local.lan" : "google.com")
-                .totalReports(isPrivate ? 0 : mockScore * 3)
-                .distinctReporters(isPrivate ? 0 : mockScore / 2)
+                .isp(isPrivate ? "Local Network Authority" : "Google LLC")
+                .domain(isPrivate ? "local.lan" : "google.com")
+                .totalReports(String.valueOf(isPrivate ? 0 : mockScore * 3))
+                .numDistinctUsers(String.valueOf(isPrivate ? 0 : mockScore / 2))
                 .lastReportedAt(isPrivate ? "Never" : "2026-08-02T12:00:00+00:00")
                 .threatLevel(ThreatLevel.fromScore(mockScore))
                 .build();

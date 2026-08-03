@@ -11,16 +11,16 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ThreatIntelligenceReport {
     private String ipAddress;
-    private String isPublic;       // "Yes" / "No"
-    private String ipVersion;      // "IPv4" / "IPv6"
-    private String isWhitelisted;  // "Yes" / "No"
-    private String abuseConfidenceScore; // "0%", "25%", etc.
+    private String isPublic;
+    private String ipVersion;
+    private String isWhitelisted;
+    private String abuseConfidenceScore;
     private String countryCode;
     private String usageType;
-    private String ispName;
-    private String domainName;
-    private int totalReports;
-    private int distinctReporters;
+    private String isp;
+    private String domain;
+    private String totalReports;
+    private String numDistinctUsers;
     private String lastReportedAt;
     private ThreatLevel threatLevel;
 }

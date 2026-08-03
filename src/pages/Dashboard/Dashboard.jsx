@@ -2307,16 +2307,16 @@ function Dashboard() {
                         <span style={{ color: "var(--text-dim)" }}>Usage Type:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.usageType}</strong>
                       </div>
                       <div style={{ fontSize: "12px" }}>
-                        <span style={{ color: "var(--text-dim)" }}>ISP Name:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.ispName}</strong>
+                        <span style={{ color: "var(--text-dim)" }}>ISP Name:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.isp}</strong>
                       </div>
                       <div style={{ fontSize: "12px" }}>
-                        <span style={{ color: "var(--text-dim)" }}>Domain Name:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.domainName}</strong>
+                        <span style={{ color: "var(--text-dim)" }}>Domain Name:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.domain}</strong>
                       </div>
                       <div style={{ fontSize: "12px" }}>
                         <span style={{ color: "var(--text-dim)" }}>Total Reports:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.totalReports}</strong>
                       </div>
                       <div style={{ fontSize: "12px" }}>
-                        <span style={{ color: "var(--text-dim)" }}>Distinct Reporters:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.distinctReporters}</strong>
+                        <span style={{ color: "var(--text-dim)" }}>Distinct Reporters:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.numDistinctUsers}</strong>
                       </div>
                       <div style={{ fontSize: "12px", gridColumn: "1 / -1" }}>
                         <span style={{ color: "var(--text-dim)" }}>Last Reported At:</span> <strong style={{ color: "var(--text)" }}>{lookupReport.lastReportedAt}</strong>
