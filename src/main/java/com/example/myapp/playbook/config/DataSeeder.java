@@ -34,7 +34,16 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        log.info("DataSeeder: Database seeding is disabled.");
+        if (playbookRepository.count() > 0) {
+            log.info("DataSeeder: playbooks already present — skipping seed.");
+        } else {
+            playbookRepository.saveAll(List.of(
+                    buildMalwareResponsePlaybook(),
+                    buildPhishingResponsePlaybook(),
+                    buildSuspiciousLoginPlaybook()
+            ));
+            log.info("DataSeeder: 3 sample playbooks inserted successfully.");
+        }
     }
 
     private void seedAlerts() {
