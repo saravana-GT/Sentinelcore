@@ -105,7 +105,7 @@ function Chatbot() {
 
   // Convert markdown into HTML safely
   const formatContent = (content) => {
-    if (!content) return "";
+    if (!content) return { __html: "" };
 
     // Escape basic HTML
     let html = content
