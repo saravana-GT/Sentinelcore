@@ -1,6 +1,5 @@
 package com.example.myapp.playbook.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.example.myapp.playbook.enums.ActionType;
 import lombok.Builder;
 import lombok.Getter;

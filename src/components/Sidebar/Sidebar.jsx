@@ -11,7 +11,8 @@ function Sidebar({ activeTab, setActiveTab, counts = {} }) {
     const storedUsername = localStorage.getItem("username");
     const storedRole = localStorage.getItem("role");
     if (storedUsername) setUsername(storedUsername);
-    if (storedRole) setRole(storedRole);
+    // Accept both the API's ADMIN form and Spring Security's ROLE_ADMIN form.
+    if (storedRole) setRole(storedRole.replace(/^ROLE_/, "").toUpperCase());
   }, []);
 
   const handleLogout = () => {

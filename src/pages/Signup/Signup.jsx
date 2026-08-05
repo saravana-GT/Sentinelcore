@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiClient } from "../../services/api";
 import "./Signup.css";
-
-let fallbackUrl = "https://sentinelcore-9hxu.onrender.com";
-const API_URL = (import.meta.env.VITE_API_URL || fallbackUrl).replace(/\/$/, "");
 
 function Signup() {
   const navigate = useNavigate();
@@ -98,23 +96,8 @@ function Signup() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          username,
-          email,
-          password,
-          role
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setApiSuccess("Account created successfully! Redirecting to login...");
+      await apiClient.register({ username, email, password, role });
+      setApiSuccess("Account created successfully! Redirecting to login...");
         
         // Track the registration action in the audit logs
         const auditLogs = JSON.parse(localStorage.getItem("audit_logs") || "[]");
@@ -125,14 +108,11 @@ function Signup() {
         });
         localStorage.setItem("audit_logs", JSON.stringify(auditLogs));
 
-        setTimeout(() => {
-          navigate("/");
-        }, 2000);
-      } else {
-        setApiError(data.error || "Registration failed.");
-      }
+      setTimeout(() => {
+        navigate("/");
+      }, 2000);
     } catch (err) {
-      setApiError("Network error. Make sure the backend is running.");
+      setApiError(err.userMessage || "Network error. Make sure the backend is running.");
     } finally {
       setIsLoading(false);
     }

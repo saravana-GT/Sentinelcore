@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiClient } from "../../services/api";
 import Sidebar from "../../components/Sidebar/Sidebar";
 import Header from "../../components/Header/Header";
 import Chatbot from "../../components/Chatbot/Chatbot";
@@ -28,6 +29,15 @@ function Dashboard() {
 
   // Navigation
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [compliance, setCompliance] = useState(null);
+  const [controls, setControls] = useState([]);
+  const [controlPage, setControlPage] = useState(0);
+  const [controlPages, setControlPages] = useState(1);
+  const [controlSearch, setControlSearch] = useState("");
+  const [controlStatus, setControlStatus] = useState("");
+  const [selectedControl, setSelectedControl] = useState(null);
+  const [complianceLoading, setComplianceLoading] = useState(false);
+  const [complianceError, setComplianceError] = useState("");
 
   // Toasts
   const [toasts, setToasts] = useState([]);
@@ -200,7 +210,8 @@ function Dashboard() {
     }
 
     if (storedUsername) setUsername(storedUsername);
-    if (storedRole) setRole(storedRole);
+    // Keep role-gated views available when the backend returns ROLE_ADMIN.
+    if (storedRole) setRole(storedRole.replace(/^ROLE_/, "").toUpperCase());
 
     // Load active sessions
     const storedSessions = localStorage.getItem("sessions");
@@ -231,6 +242,55 @@ function Dashboard() {
       localStorage.setItem("audit_logs", JSON.stringify(defaultAudit));
     }
   }, [navigate]);
+
+  const loadCompliance = async (page = controlPage, silent = false) => {
+    if (!silent) {
+      setComplianceLoading(true);
+      setComplianceError("");
+    }
+    try {
+      const [summary, matrix] = await Promise.all([
+        apiClient.complianceDashboard(),
+        apiClient.complianceMatrix({ page, size: 10, search: controlSearch || undefined, status: controlStatus || undefined, sortBy: "lastUpdated", sortDir: "desc" })
+      ]);
+      setCompliance(summary.data);
+      setControls(matrix.data.content || []);
+      setControlPages(matrix.data.totalPages || 1);
+      setControlPage(matrix.data.number || 0);
+    } catch (error) {
+      if (!silent) setComplianceError(error.userMessage || "Unable to load compliance data.");
+    } finally {
+      if (!silent) setComplianceLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "compliance") loadCompliance(0);
+  }, [activeTab, controlSearch, controlStatus]);
+
+  useEffect(() => {
+    if (activeTab !== "compliance") return undefined;
+    const refresh = () => {
+      if (document.visibilityState === "visible") loadCompliance(controlPage, true);
+    };
+    const timer = window.setInterval(refresh, 60000);
+    return () => window.clearInterval(timer);
+  }, [activeTab, controlPage, controlSearch, controlStatus]);
+
+  const viewControl = async (id) => {
+    try { setSelectedControl((await apiClient.control(id)).data); }
+    catch (error) { showToast("warning", error.userMessage || "Unable to load control details."); }
+  };
+
+  const updateControlStatus = async (status) => {
+    if (!selectedControl || !checkWritePermission()) return;
+    try {
+      const { data } = await apiClient.updateControlStatus(selectedControl.id, status);
+      setSelectedControl(data);
+      showToast("success", `Control status changed to ${status}.`);
+      loadCompliance();
+    } catch (error) { showToast("warning", error.userMessage || "Unable to update control status."); }
+  };
 
   // Fetch active threat feeds from backend
   useEffect(() => {
@@ -483,6 +543,18 @@ function Dashboard() {
                     type: alert.severity ? alert.severity.toLowerCase() : "info"
                   };
                 }));
+              }
+            }
+            if (data.type === "COMPLIANCE_CONTROL_UPDATED") {
+              const updatedControl = data.control;
+              if (data.dashboard) setCompliance(data.dashboard);
+              if (updatedControl) {
+                setControls((current) => current.map((control) => (
+                  control.id === updatedControl.id ? updatedControl : control
+                )));
+                setSelectedControl((current) => (
+                  current?.id === updatedControl.id ? updatedControl : current
+                ));
               }
             }
           } catch (err) {
@@ -3363,32 +3435,23 @@ function Dashboard() {
 
           {/* ===== 9. COMPLIANCE VIEW ===== */}
           {activeTab === "compliance" && (
-            <div>
-              <div style={{ textAlign: "left", marginBottom: "20px" }}>
-                <h2 style={{ fontSize: "20px", color: "var(--heading)", fontWeight: "800" }}>Compliance Matrix</h2>
-                <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>Track organizational posture against cyber controls</p>
+            <div className="dashboard-page">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <div><h2 style={{ fontSize: "20px", color: "var(--heading)", fontWeight: "800" }}>Compliance Manager</h2><p style={{ fontSize: "12px", color: "var(--text-muted)" }}>Database-backed control posture and evidence · <span style={{ color: wsConnected ? "var(--green)" : "var(--amber)" }}>{wsConnected ? "Live updates connected" : "Reconnecting live updates"}</span></p></div>
+                <button className="btn btn-ghost" onClick={() => loadCompliance()}>Retry</button>
               </div>
-
-              <div className="compliance-framework">
-                <div className="framework-header">
-                  <div className="framework-name">SOC 2 Type II Compliance</div>
-                  <div className="progress-bar"><div className="progress-fill" style={{ width: "82%" }}></div></div>
-                  <div className="framework-score">82%</div>
+              {complianceLoading && <div className="panel"><div className="panel-body">Loading compliance data…</div></div>}
+              {complianceError && <div className="panel"><div className="panel-body" style={{ color: "var(--red)" }}>{complianceError} <button className="btn btn-ghost" onClick={() => loadCompliance()}>Retry</button></div></div>}
+              {!complianceLoading && !complianceError && <>
+                <div className="stats-grid">
+                  {[["Compliance Score", `${compliance?.complianceScore ?? 0}%`, "green"], ["Total Controls", compliance?.totalControls ?? 0, "cyan"], ["Passed Controls", compliance?.passedControls ?? 0, "green"], ["Failed Controls", compliance?.failedControls ?? 0, "red"], ["Warning Controls", compliance?.warningControls ?? 0, "amber"], ["Not Applicable", compliance?.notApplicableControls ?? 0, "purple"]].map(([label, value, color]) => <div className={`stat-card ${color}`} key={label}><div className="stat-label">{label}</div><div className="stat-value">{value}</div></div>)}
                 </div>
-                <div className="control-grid">
-                  <div className="control-item"><div className="control-status" style={{ background: "var(--green)" }}></div><div><span className="control-id">CC6.1</span> Access Control</div></div>
-                  <div className="control-item"><div className="control-status" style={{ background: "var(--green)" }}></div><div><span className="control-id">CC6.3</span> Encryption keys</div></div>
-                  <div className="control-item"><div className="control-status" style={{ background: "var(--red)" }}></div><div><span className="control-id">CC6.5</span> Two-Factor Auth</div></div>
+                <div className="panels-grid panels-grid-equal">
+                  <div className="panel"><div className="panel-header"><div className="panel-title">Framework Summary</div></div><div className="panel-body">{Object.entries(compliance?.frameworkSummary || {}).length ? Object.entries(compliance.frameworkSummary).map(([framework, total]) => <div className="legend-row" key={framework}>{framework}<div className="legend-val">{total}</div></div>) : "No controls have been recorded."}</div></div>
+                  {selectedControl && <div className="panel"><div className="panel-header"><div className="panel-title">{selectedControl.controlId} Details</div></div><div className="panel-body"><p><b>Requirement:</b> {selectedControl.requirement}</p><p><b>Description:</b> {selectedControl.description || "—"}</p><p><b>Framework:</b> {selectedControl.framework || "—"} &nbsp; <b>Risk:</b> {selectedControl.risk || "—"}</p><p><b>Evidence:</b> {selectedControl.evidence || "No evidence recorded."}</p><p><b>Comments:</b> {selectedControl.comments || "—"}</p><p><b>Owner:</b> {selectedControl.owner || "—"}</p><p><b>Created:</b> {selectedControl.createdAt ? new Date(selectedControl.createdAt).toLocaleString() : "—"}</p>{role !== "VIEWER" && <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>{["PASS", "FAIL", "WARNING", "NA"].map((status) => <button key={status} className="btn btn-ghost" onClick={() => updateControlStatus(status)}>{status}</button>)}</div>}</div></div>}
                 </div>
-              </div>
-
-              <div className="compliance-framework">
-                <div className="framework-header">
-                  <div className="framework-name">ISO 27001 posture</div>
-                  <div className="progress-bar"><div className="progress-fill" style={{ width: "74%" }}></div></div>
-                  <div className="framework-score">74%</div>
-                </div>
-              </div>
+                <div className="panel" style={{ marginTop: "16px" }}><div className="panel-header"><div className="panel-title">Compliance Matrix</div><div className="panel-actions"><input value={controlSearch} onChange={(e) => setControlSearch(e.target.value)} placeholder="Search controls" /><select value={controlStatus} onChange={(e) => setControlStatus(e.target.value)}><option value="">All statuses</option><option>PASS</option><option>FAIL</option><option>WARNING</option><option>NA</option></select></div></div><div className="panel-body" style={{ padding: 0 }}><table className="data-table" style={{ width: "100%" }}><thead><tr><th>Control ID</th><th>Requirement</th><th>Framework</th><th>Category</th><th>Status</th><th>Risk</th><th>Evidence</th><th>Last Updated</th><th>Owner</th></tr></thead><tbody>{controls.map((control) => <tr key={control.id} onClick={() => viewControl(control.id)} style={{ cursor: "pointer" }}><td><b>{control.controlId}</b></td><td>{control.requirement}</td><td>{control.framework || "—"}</td><td>{control.category || "—"}</td><td><span className="badge">{control.status}</span></td><td>{control.risk || "—"}</td><td>{control.evidence || "—"}</td><td>{control.lastUpdated ? new Date(control.lastUpdated).toLocaleString() : "—"}</td><td>{control.owner || "—"}</td></tr>)}{!controls.length && <tr><td colSpan="9" style={{ textAlign: "center", padding: "20px" }}>No controls match the selected filters.</td></tr>}</tbody></table></div><div className="panel-body" style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}><button className="btn btn-ghost" disabled={controlPage === 0} onClick={() => loadCompliance(controlPage - 1)}>Previous</button><span>Page {controlPage + 1} of {controlPages}</span><button className="btn btn-ghost" disabled={controlPage + 1 >= controlPages} onClick={() => loadCompliance(controlPage + 1)}>Next</button></div></div>
+              </>}
             </div>
           )}
 
