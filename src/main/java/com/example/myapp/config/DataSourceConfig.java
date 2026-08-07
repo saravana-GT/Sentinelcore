@@ -17,16 +17,16 @@ public class DataSourceConfig {
 
     private static final Logger log = LoggerFactory.getLogger(DataSourceConfig.class);
 
-    @Value("${spring.datasource.url}")
+    @Value("${spring.datasource.url:jdbc:h2:mem:sentinelcore;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE}")
     private String dbUrl;
 
-    @Value("${spring.datasource.username}")
+    @Value("${spring.datasource.username:sa}")
     private String dbUsername;
 
-    @Value("${spring.datasource.password}")
+    @Value("${spring.datasource.password:password}")
     private String dbPassword;
 
-    @Value("${spring.datasource.driver-class-name}")
+    @Value("${spring.datasource.driver-class-name:org.h2.Driver}")
     private String driverClassName;
 
     @Bean
