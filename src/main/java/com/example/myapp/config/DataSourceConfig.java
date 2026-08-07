@@ -64,10 +64,15 @@ public class DataSourceConfig {
     private DataSource createH2DataSource() {
         log.info("[*] Creating configured H2 database...");
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(dbUrl);
-        config.setUsername(dbUsername);
-        config.setPassword(dbPassword);
-        config.setDriverClassName(driverClassName);
+        String finalUrl = (dbUrl != null && !dbUrl.trim().isEmpty()) ? dbUrl : "jdbc:h2:mem:sentinelcore;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE";
+        String finalDriver = (driverClassName != null && !driverClassName.trim().isEmpty()) ? driverClassName : "org.h2.Driver";
+        String finalUser = (dbUsername != null && !dbUsername.trim().isEmpty()) ? dbUsername : "sa";
+        String finalPassword = (dbPassword != null && !dbPassword.trim().isEmpty()) ? dbPassword : "password";
+
+        config.setJdbcUrl(finalUrl);
+        config.setDriverClassName(finalDriver);
+        config.setUsername(finalUser);
+        config.setPassword(finalPassword);
         return new HikariDataSource(config);
     }
 }
