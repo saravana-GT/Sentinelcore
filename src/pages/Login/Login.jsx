@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiClient, session } from "../../services/api";
 import "./Login.css";
-
-let fallbackUrl = "https://sentinelcore-9hxu.onrender.com";
-const API_URL = (import.meta.env.VITE_API_URL || fallbackUrl).replace(/\/$/, "");
 
 function Login() {
   const navigate = useNavigate();
@@ -20,13 +18,9 @@ function Login() {
   const [otpError, setOtpError] = useState("");
   const [tempAuthData, setTempAuthData] = useState(null);
 
-  // Clear session data if visiting login page afresh (but keep settings like mfa_enabled and existing sessions)
+  // Clear only authentication data; preserve user preferences and the optional MFA state.
   useEffect(() => {
-    const mfa = localStorage.getItem("mfa_enabled");
-    const sessions = localStorage.getItem("sessions");
-    localStorage.clear();
-    if (mfa) localStorage.setItem("mfa_enabled", mfa);
-    if (sessions) localStorage.setItem("sessions", sessions);
+    session.clear();
   }, []);
 
   const validate = (field, value) => {
@@ -82,30 +76,17 @@ function Login() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ email, password })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        const isMfaEnabled = localStorage.getItem("mfa_enabled") === "true";
-        if (isMfaEnabled) {
-          // Store data temporarily and transition to MFA screen
-          setTempAuthData(data);
-          setIsMfaStep(true);
-        } else {
-          completeLogin(data);
-        }
+      const { data } = await apiClient.login({ email, password });
+      const isMfaEnabled = localStorage.getItem("mfa_enabled") === "true";
+      if (isMfaEnabled) {
+        // Store data temporarily and transition to MFA screen
+        setTempAuthData(data);
+        setIsMfaStep(true);
       } else {
-        setApiError(data.error || "Login failed. Please check credentials.");
+        completeLogin(data);
       }
     } catch (err) {
-      setApiError("Network error. Make sure the backend is running.");
+      setApiError(err.userMessage || "Network error. Make sure the backend is running.");
     } finally {
       setIsLoading(false);
     }
@@ -134,9 +115,7 @@ function Login() {
   };
 
   const completeLogin = (authData) => {
-    localStorage.setItem("token", authData.token);
-    localStorage.setItem("username", authData.username);
-    localStorage.setItem("role", authData.role);
+    session.save(authData);
 
     // Session tracking: register a new active session
     let sessions = JSON.parse(localStorage.getItem("sessions") || "[]");

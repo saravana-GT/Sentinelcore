@@ -36,7 +36,7 @@ public class DataSourceConfig {
         log.info("[*] Configured database URL: {}", dbUrl);
         
         if (dbUrl == null || dbUrl.trim().isEmpty() || dbUrl.contains("jdbc:h2:")) {
-            log.info("[*] H2 configured as default database.");
+            log.info("[*] H2 configured as default database: {}", dbUrl);
             return createH2DataSource();
         }
 
@@ -62,12 +62,12 @@ public class DataSourceConfig {
     }
 
     private DataSource createH2DataSource() {
-        log.info("[*] Creating H2 In-Memory Database...");
+        log.info("[*] Creating configured H2 database...");
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl("jdbc:h2:mem:sentinelcore;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE");
-        config.setUsername("sa");
-        config.setPassword("password");
-        config.setDriverClassName("org.h2.Driver");
+        config.setJdbcUrl(dbUrl);
+        config.setUsername(dbUsername);
+        config.setPassword(dbPassword);
+        config.setDriverClassName(driverClassName);
         return new HikariDataSource(config);
     }
 }
