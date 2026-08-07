@@ -35,7 +35,7 @@ public class DataSourceConfig {
         log.info("[*] Initializing DataSource custom router...");
         log.info("[*] Configured database URL: {}", dbUrl);
         
-        if (dbUrl == null || dbUrl.trim().isEmpty() || dbUrl.contains("jdbc:h2:")) {
+        if (dbUrl == null || dbUrl.trim().isEmpty() || dbUrl.contains("jdbc:h2:") || !dbUrl.contains("jdbc:postgresql:")) {
             log.info("[*] H2 configured as default database: {}", dbUrl);
             return createH2DataSource();
         }
