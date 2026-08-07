@@ -241,6 +241,9 @@ function Dashboard() {
       setAuditLogs(defaultAudit);
       localStorage.setItem("audit_logs", JSON.stringify(defaultAudit));
     }
+
+    // Pre-fetch compliance dashboard summary silently on load
+    loadCompliance(0, true);
   }, [navigate]);
 
   const loadCompliance = async (page = controlPage, silent = false) => {
@@ -1827,7 +1830,8 @@ function Dashboard() {
           alerts: dbAlerts.length,
           threats: threats.length,
           vulnerabilities: dbVulnerabilities.length,
-          assets: dbAssets.length
+          assets: dbAssets.length,
+          complianceScore: compliance?.complianceScore ?? 0
         }}
       />
 

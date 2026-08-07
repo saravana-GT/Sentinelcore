@@ -167,7 +167,7 @@ function Sidebar({ activeTab, setActiveTab, counts = {} }) {
               <polyline points="20 6 9 17 4 12"/>
             </svg>
           </span> Compliance
-          <span className="nav-badge badge-green">78%</span>
+          <span className="nav-badge badge-green">{counts.complianceScore !== undefined ? `${counts.complianceScore}%` : "0%"}</span>
         </button>
         <button
           className={`nav-item ${activeTab === "reports" ? "active" : ""}`}
