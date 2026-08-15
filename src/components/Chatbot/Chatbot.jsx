@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import "./Chatbot.css";
 
 let fallbackUrl = "http://localhost:5005";
-const API_URL = (import.meta.env.VITE_API_URL || fallbackUrl).replace(/\/$/, "");
+const CHATBOT_API_URL = (import.meta.env.VITE_CHATBOT_API_URL || import.meta.env.VITE_API_URL || fallbackUrl).replace(/\/$/, "");
 
 const SUGGESTIONS = [
   "General health summary",
@@ -112,7 +112,7 @@ function Chatbot({
 
       console.log("Sending live data to chatbot:", liveData);
 
-      const res = await fetch(`${API_URL}/api/chat`, {
+      const res = await fetch(`${CHATBOT_API_URL}/api/chat`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
