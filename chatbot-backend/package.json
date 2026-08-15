@@ -1,0 +1,20 @@
+{
+  "name": "sentinelcore-chatbot-backend",
+  "version": "1.0.0",
+  "description": "Node.js backend for Sentinelcore chatbot using Gemini API and ChromaDB",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "scrape": "node scraper.js",
+    "ingest": "node ingest.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cheerio": "^1.0.0",
+    "chromadb": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2"
+  }
+}

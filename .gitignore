@@ -51,3 +51,8 @@ replay_pid*
 target/
 .maven/
 dependency-reduced-pom.xml
+
+# Environment variables
+.env
+.env.production
+.env.*

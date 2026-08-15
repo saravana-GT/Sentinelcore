@@ -1,271 +1,308 @@
-import { useState, useRef, useEffect } from "react";
-import { Copy, Check, FileText, ShieldAlert, X, Download, ShieldCheck } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import "./Chatbot.css";
 
-let fallbackUrl = "https://sentinelcore-9hxu.onrender.com";
+let fallbackUrl = "http://localhost:5005";
 const API_URL = (import.meta.env.VITE_API_URL || fallbackUrl).replace(/\/$/, "");
 
-function Chatbot() {
-  const [open, setOpen] = useState(false);
-  const [copiedIndex, setCopiedIndex] = useState(null);
-  const [copiedReport, setCopiedReport] = useState(false);
-  const [reportOpen, setReportOpen] = useState(false);
-  const [reportText, setReportText] = useState("");
+const SUGGESTIONS = [
+  "General health summary",
+  "Show critical and high alerts",
+  "Are there any vulnerabilities?",
 
+];
+
+function Chatbot({
+  incidents = [],
+  alerts = [],
+  threats = [],
+  assets = [],
+  logs = []
+}) {
+  const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
       sender: "bot",
-      text: "Hello! I am SentinelCore Security Assistant. How can I help you?",
-      severity: "Low"
+      text: "Hello! I am **Sentinel AI**, your dedicated cybersecurity analyst. Ask me anything about your active devices, system health, threat updates, or security alerts."
     }
   ]);
+  const [inputVal, setInputVal] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [input, setInput] = useState("");
-  const chatBodyRef = useRef(null);
+  const bodyRef = useRef(null);
 
+  // Auto-scroll to bottom of chat when messages change
   useEffect(() => {
-    if (chatBodyRef.current) {
-      chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
+    if (bodyRef.current) {
+      bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
     }
-  }, [messages, open]);
+  }, [messages, isLoading]);
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
+  /***const handleSend = async (textToSend) => {
+    const text = textToSend || inputVal;
+    if (!text.trim()) return;
 
-    const userMessage = {
-      sender: "user",
-      text: input,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
+    // Add user message
+    setMessages((prev) => [...prev, { sender: "user", text }]);
+    if (!textToSend) setInputVal("");
 
-    setMessages(prev => [...prev, userMessage]);
-    const currentInput = input;
-    setInput("");
+    setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/chat`, {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/chat`, {
         method: "POST",
         headers: {
+          "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ message: currentInput })
+        body: JSON.stringify({ message: text })
       });
 
-      const data = await response.json();
+      if (res.ok) {
+        const data = await res.json();
+        setMessages((prev) => [...prev, { sender: "bot", text: data.reply }]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: "bot",
+            text: "⚠️ I had trouble connecting to the security server. Please ensure the backend is running properly and try again."
+          }
+        ]);
+      }
+    } catch (err) {
+      console.error("Chat error:", err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "⚠️ System connection error. I'm unable to reach the Sentinelcore backend."
+        }
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };***/
 
-      setMessages(prev => [
+
+  const handleSend = async (textToSend) => {
+    const text = textToSend || inputVal;
+    if (!text.trim()) return;
+
+    // Add user message
+    setMessages((prev) => [...prev, { sender: "user", text }]);
+
+    if (!textToSend) {
+      setInputVal("");
+    }
+
+    setIsLoading(true);
+
+    try {
+      const token = localStorage.getItem("token");
+
+      // Current SentinelCore application data
+      const liveData = {
+        incidents: incidents,
+        alerts: alerts,
+        threats: threats,
+        assets: assets,
+        logs: logs
+      };
+
+      console.log("Sending live data to chatbot:", liveData);
+
+      const res = await fetch(`${API_URL}/api/chat`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: text,
+          liveData: liveData
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: "bot",
+            text: data.reply
+          }
+        ]);
+      } else {
+        const errorText = await res.text();
+
+        console.error("Chatbot API error:", errorText);
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: "bot",
+            text: "⚠️ I had trouble connecting to the security server. Please ensure the backend is running properly and try again."
+          }
+        ]);
+      }
+
+    } catch (err) {
+      console.error("Chat error:", err);
+
+      setMessages((prev) => [
         ...prev,
         {
           sender: "bot",
-          text: data.reply,
-          severity: data.severity || "Low",
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          text: "⚠️ System connection error. I'm unable to reach the SentinelCore backend."
         }
       ]);
-    } catch (error) {
-      setMessages(prev => [
-        ...prev,
-        {
-          sender: "bot",
-          text: "⚠️ Backend connection failed. Please check your network or security configuration.",
-          severity: "High",
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }
-      ]);
+
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleCopyText = (text, index) => {
-    navigator.clipboard.writeText(text);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && !isLoading) {
+      handleSend();
+    }
   };
 
-  const handleCopyReport = () => {
-    navigator.clipboard.writeText(reportText);
-    setCopiedReport(true);
-    setTimeout(() => setCopiedReport(false), 2000);
-  };
+  // Simple Markdown parser for rendering bold words, lists, blockquotes, and headers inside chat bubbles
+  const renderMessageContent = (text) => {
+    if (!text) return "";
+    const lines = text.split("\n");
+    return lines.map((line, idx) => {
+      let content = line.trim();
+      if (!content) return <div key={idx} style={{ height: "6px" }} />;
 
-  const handleDownloadReport = () => {
-    const blob = new Blob([reportText], { type: 'text/markdown;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `SentinelCore_Incident_Report_${Date.now()}.md`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+      if (content.startsWith("### ")) {
+        return <h3 key={idx}>{parseInlineMarkdown(content.substring(4))}</h3>;
+      }
 
-  const openReportModal = (text) => {
-    setReportText(text);
-    setReportOpen(true);
-  };
+      if (content.startsWith("> ")) {
+        return <blockquote key={idx}>{parseInlineMarkdown(content.substring(2))}</blockquote>;
+      }
 
-  // Convert markdown into HTML safely
-  const formatContent = (content) => {
-    if (!content) return { __html: "" };
+      if (content.startsWith("- ") || content.startsWith("* ")) {
+        return <li key={idx}>{parseInlineMarkdown(content.substring(2))}</li>;
+      }
 
-    // Escape basic HTML
-    let html = content
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-
-    // Convert Headings
-    html = html
-      .replace(/^### (.*$)/gim, '<h3 style="color:#93c5fd; font-size:14px; margin: 10px 0 6px 0; font-weight:600;">$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2 style="color:#60a5fa; font-size:16px; margin: 12px 0 8px 0; font-weight:600;">$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1 style="color:#3b82f6; font-size:18px; margin: 14px 0 10px 0; font-weight:700;">$1</h1>');
-
-    // Bold & Italic
-    html = html
-      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\*(.*?)\*/g, "<em>$1</em>");
-
-    // Inline Code
-    html = html.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
-
-    // Lists
-    html = html
-      .replace(/^\* (.*$)/gim, '<li style="margin-left: 15px; list-style-type: disc; margin-bottom: 4px;">$1</li>')
-      .replace(/^- (.*$)/gim, '<li style="margin-left: 15px; list-style-type: disc; margin-bottom: 4px;">$1</li>')
-      .replace(/^(\d+)\. (.*$)/gim, '<li style="margin-left: 15px; list-style-type: decimal; margin-bottom: 4px;">$2</li>');
-
-    // Blockquotes
-    html = html.replace(/^&gt; (.*$)/gim, '<blockquote class="msg-quote">$1</blockquote>');
-
-    // Code blocks
-    html = html.replace(/```([a-z0-9]*)\n([\s\S]*?)```/g, (match, lang, code) => {
-      return `<div class="code-block-wrapper">
-        <div class="code-header">
-          <span>${lang || "code"}</span>
-        </div>
-        <pre class="code-pre"><code>${code.trim()}</code></pre>
-      </div>`;
+      return <p key={idx}>{parseInlineMarkdown(content)}</p>;
     });
+  };
 
-    // Tables
-    const tableRegex = /\|(.+)\|[\r\n]+\|[-:| ]+\|[\r\n]+((?:\|.+\|[\r\n]*)+)/g;
-    html = html.replace(tableRegex, (match, header, rows) => {
-      const headers = header.split('|').filter(h => h.trim().length > 0).map(h => `<th>${h.trim()}</th>`).join('');
-      const rowLines = rows.trim().split('\n');
-      const formattedRows = rowLines.map(r => {
-        const cells = r.split('|').filter(c => c.trim().length > 0).map(c => `<td>${c.trim()}</td>`).join('');
-        return `<tr>${cells}</tr>`;
-      }).join('');
+  const parseInlineMarkdown = (text) => {
+    const boldRegex = /\*\*(.*?)\*\*/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
 
-      return `<div class="table-responsive"><table class="msg-table"><thead><tr>${headers}</tr></thead><tbody>${formattedRows}</tbody></table></div>`;
-    });
+    while ((match = boldRegex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+      parts.push(<strong key={match.index}>{match[1]}</strong>);
+      lastIndex = boldRegex.lastIndex;
+    }
 
-    return { __html: html };
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : text;
   };
 
   return (
     <>
-      <button
-        className="chat-button"
-        onClick={() => setOpen(!open)}
-        title="SentinelCore Security Assistant"
-      >
-        🤖
+      {/* Floating Toggle Button */}
+      <button className="chatbot-toggle" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle Chatbot">
+        {!isOpen && <div className="chatbot-toggle-pulse" />}
+        {isOpen ? (
+          // Close Icon
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        ) : (
+          // Message Icon
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+        )}
       </button>
 
-      {open && (
-        <div className="chat-window">
-          <div className="chat-header">
-            <span>SentinelCore AI Security Assistant</span>
-            <button className="close-btn" onClick={() => setOpen(false)}>
-              <X size={16} />
+      {/* Chat Window Panel */}
+      {isOpen && (
+        <div className="chatbot-container">
+          <div className="chatbot-header">
+            <div className="chatbot-header-info">
+              <div className="chatbot-header-title">
+                🛡️ Sentinel AI Analyst
+              </div>
+              <div className="chatbot-header-subtitle">
+                <span className="chatbot-status-dot"></span> Online & Securing
+              </div>
+            </div>
+            <button className="chatbot-close" onClick={() => setIsOpen(false)} aria-label="Close Chat">
+              &times;
             </button>
           </div>
 
-          <div className="chat-body" ref={chatBodyRef}>
+          <div className="chatbot-body" ref={bodyRef}>
             {messages.map((msg, index) => (
-              <div key={index} className={msg.sender}>
-                {msg.sender === "bot" && msg.severity && (
-                  <div className={`severity-badge ${msg.severity.toLowerCase()}`}>
-                    <ShieldAlert size={11} />
-                    <span>SEVERITY: {msg.severity.toUpperCase()}</span>
-                  </div>
-                )}
-
-                <div
-                  className="formatted-message-text"
-                  dangerouslySetInnerHTML={formatContent(msg.text)}
-                />
-
-                {msg.sender === "bot" && (
-                  <div className="message-action-toolbar">
-                    <button
-                      className="toolbar-btn"
-                      onClick={() => handleCopyText(msg.text, index)}
-                      title="Copy markdown text"
-                    >
-                      {copiedIndex === index ? <Check size={11} color="#22C55E" /> : <Copy size={11} />}
-                      <span>{copiedIndex === index ? "Copied" : "Copy"}</span>
-                    </button>
-                    <button
-                      className="toolbar-btn primary"
-                      onClick={() => openReportModal(msg.text)}
-                      title="Export as Executive Incident Report"
-                    >
-                      <FileText size={11} />
-                      <span>Executive Report</span>
-                    </button>
-                  </div>
-                )}
+              <div key={index} className={`chatbot-message ${msg.sender}`}>
+                {renderMessageContent(msg.text)}
               </div>
+            ))}
+            {isLoading && (
+              <div className="chatbot-message bot">
+                <div className="typing-indicator">
+                  <div className="typing-dot"></div>
+                  <div className="typing-dot"></div>
+                  <div className="typing-dot"></div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Prompt Suggestions */}
+          <div className="chatbot-suggestions">
+            {SUGGESTIONS.map((sug, i) => (
+              <button
+                key={i}
+                className="chatbot-suggestion-tag"
+                onClick={() => handleSend(sug)}
+                disabled={isLoading}
+              >
+                {sug}
+              </button>
             ))}
           </div>
 
-          <div className="chat-input">
+          <div className="chatbot-footer">
             <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask security questions (e.g. 'Investigate alert')..."
-              onKeyDown={(e) => {
-                if (e.key === "Enter") sendMessage();
-              }}
+              type="text"
+              className="chatbot-input"
+              placeholder="Ask a security question..."
+              value={inputVal}
+              onChange={(e) => setInputVal(e.target.value)}
+              onKeyDown={handleKeyPress}
+              disabled={isLoading}
             />
-            <button onClick={sendMessage}>Send</button>
-          </div>
-        </div>
-      )}
-
-      {/* Incident & Risk Report Modal */}
-      {reportOpen && (
-        <div className="modal-backdrop" onClick={() => setReportOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-header-left">
-                <ShieldCheck size={20} style={{ color: "#22C55E" }} />
-                <div>
-                  <h3 className="modal-title">Executive Incident & Risk Report</h3>
-                  <span className="modal-subtitle">SentinelCore Enterprise SOC Telemetry Report</span>
-                </div>
-              </div>
-              <button className="modal-close-btn" onClick={() => setReportOpen(false)}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <pre className="report-pre">{reportText}</pre>
-            </div>
-
-            <div className="modal-footer">
-              <button className="modal-btn secondary" onClick={handleCopyReport}>
-                {copiedReport ? <Check size={14} color="#22C55E" /> : <Copy size={14} />}
-                <span>{copiedReport ? 'Copied to Clipboard' : 'Copy Markdown'}</span>
-              </button>
-
-              <button className="modal-btn primary" onClick={handleDownloadReport}>
-                <Download size={14} />
-                <span>Download .MD Report</span>
-              </button>
-            </div>
+            <button
+              className="chatbot-send-btn"
+              onClick={() => handleSend()}
+              disabled={isLoading || !inputVal.trim()}
+              aria-label="Send Message"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
           </div>
         </div>
       )}

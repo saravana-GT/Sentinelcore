@@ -1,0 +1,318 @@
+=== CODE COMPONENT: src\pages\Dashboard\Dashboard.jsx ===
+SentinelCore
+Compliance Posture Report
+SOC-2-TYPE-II-AUDIT
+Generated On
+Assessed Scope
+Enterprise SOC Infrastructure
+Audit Version
+v1.0.0-Beta (Active)
+SOC 2 Type II Posture
+Calculated compliance level based on 3 main access control and encryption policy criteria.
+Assessed Security Control Frameworks
+PASSED
+PASSED
+FAILED
+Compliance Notes & Recommendations
+All other logical access controls (CC6.1) and encryption key parameters (CC6.3) were evaluated as fully compliant.
+SentinelCore Compliance Monitor &copy; 2026
+CONFIDENTIAL - FOR INTERNAL AUDIT PURPOSES ONLY
+Command Center Dashboard
+Real-time telemetry, live asset telemetry & incident triage
+Critical Alerts
+▲ Real-Time Trigger
+Online Assets
+Average CPU Load
+▲ System Utilization
+Average RAM Load
+▼ Telemetry Stream
+Monitored Assets
+— Registered Hosts
+Security Incidents Over Time
+Severity Distribution
+● ACTIVE
+Critical Vulnerable Targets
+Incident Management Board
+Drag, drop or move active security cases through triage statuses
+Detection Engine Alerts
+Active triggers from SIEM analyzers
+Threat Intelligence Feed
+Library of indicators of compromise (IOCs) registered on watchlists
+Enterprise Vulnerability & CVE Management
+NVD/OpenVAS/Nessus catalog, host software mapping & automated patch lifecycle
+Asset CVSS Risk Matrix
+Patched
+Enterprise System Asset Inventory
+Database backed assets, endpoint telemetry & infrastructure inventory
+📥 Export CSV
+Enterprise SIEM Log Explorer
+Ingest, search & query Windows, Sysmon, Syslog, Apache, Nginx, Firewall, VPN & SSH logs
+🧹 Apply Retention Policy (90 Days)
+Incident Response Playbooks
+SOAR response scripts
+Loading preseeded SOAR playbooks from database...
+Compliance Matrix
+Track organizational posture against cyber controls
+SOC 2 Type II Compliance
+ISO 27001 posture
+Security Reports
+Generate printable compliance and audit summaries
+SOC2 Posture Audit
+Compliance Report
+Download PDF
+Incident Logs (Last 24 Hours)
+Operations summary
+Export CSV
+SOC Audit Trail
+Immutable logs of security analyst administrative operations
+No audit events recorded.
+Security Runbooks
+Guides and post-incident reviews (PIR)
+PIR-2026-04: Ransomware response
+Runbook Guide
+Triage playbook guidelines for database encryption events.
+MFA enrollment guide
+IT Operations
+Setup policies for Active Directory MFA integrations.
+Users & Teams
+Manage enterprise SOC analysts and permissions
+Settings & Configuration
+Configure enterprise security parameters and session policies
+Access & Authentication
+Enable Multi-Factor Authentication (MFA)
+Require simulated 6-digit OTP code verification for all logins.
+Live Monitoring Stream
+Auto-Refresh Live Event Feed
+Simulate live-updating logs on the central dashboard feed.
+Refresh Interval (Seconds)
+Seconds between simulated background events.
+Active Security Sessions
+Current Session
+Protected
+Register New Security Incident
+Cancel
+Register Case
+Register Enterprise System Host Asset
+Cancel
+Register Asset
+MAC Address
+Public IP
+CPU Cores
+Total RAM
+Total Disk
+Architecture
+Owner / Dept
+Last Seen Ping
+Close Inspector
+Invite Team Member
+Cancel
+Invite User
+Deploy Custom Detection Rule
+Cancel
+Deploy Rule
+[Developer Comment] sentinelcore-9hxu.onrender.com";
+[Developer Comment] User details
+[Developer Comment] Navigation
+[Developer Comment] 'createIncident' | 'addAsset' | 'addUser' | 'createRule' | null
+[Developer Comment] Inputs for modals
+[Developer Comment] Data Stores
+[Developer Comment] Data Stores (Strictly Real Database & Live Telemetry Driven)
+[Developer Comment] SIEM Filter States
+[Developer Comment] Audit Logs (dynamic tracking)
+[Developer Comment] Sessions list
+[Developer Comment] Live feed updates
+[Developer Comment] Vulnerability scan simulation states
+[Developer Comment] Playbooks & SOAR automation states
+[Developer Comment] 'available' | 'history'
+[Developer Comment] Live Telemetry & WebSockets States
+[Developer Comment] Asset Management API States
+[Developer Comment] Phase 4: Vulnerability Management States
+[Developer Comment] Phase 5: Network Discovery States
+[Developer Comment] Phase 6: SIEM Log Explorer States
+[Developer Comment] System Settings
+[Developer Comment] Users & Teams
+[Developer Comment] Initial load
+[Developer Comment] Load active sessions
+[Developer Comment] Load settings
+[Developer Comment] Initialize audit logs
+[Developer Comment] Fetch active threat feeds from backend
+[Developer Comment] Live WebSocket Telemetry Stream
+[Developer Comment] ${window.location.host}/ws/dashboard`;
+[Developer Comment] Asset Management REST API handlers
+[Developer Comment] Phase 4: Vulnerability Management API Handlers
+[Developer Comment] Automatically create Incident cards for Critical and High alerts!
+[Developer Comment] Phase 5: Network Discovery API Handler
+[Developer Comment] Phase 6: SIEM Log Explorer API Handlers
+[Developer Comment] Phase 9: Incident Response Remediation Handlers
+[Developer Comment] Live feed stream simulation is now handled via WebSocket from the database alerts.
+[Developer Comment] Left empty. Real-time alerts are populated by the WebSocket client onmessage handler.
+[Developer Comment] Log audit helper
+[Developer Comment] Toast helper
+[Developer Comment] Check write capability based on role
+[Developer Comment] Modals operations
+[Developer Comment] Create Incident
+[Developer Comment] Add Asset
+[Developer Comment] Add Detection Rule
+[Developer Comment] Triage actions
+[Developer Comment] Kanban Incident Movement
+[Developer Comment] Vulnerability scanner run
+[Developer Comment] randomly update some score
+[Developer Comment] fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@300;400;600;700;800&display=swap');
+[Developer Comment] Session terminations
+[Developer Comment] Settings updates
+[Developer Comment] SIEM logs query filtering
+[Developer Comment] Generate automated incident card
+[Developer Comment] Generate dynamic event stream alert
+
+=================================
+
+=== CODE COMPONENT: src\pages\Login\Login.jsx ===
+Security Operations Dashboard
+Multi-Factor Authentication (MFA) is enabled for this system. Please enter the 6-digit verification code.
+Verify & Login
+[Developer Comment] sentinelcore-9hxu.onrender.com";
+[Developer Comment] MFA simulation states
+[Developer Comment] Clear session data if visiting login page afresh (but keep settings like mfa_enabled and existing sessions)
+[Developer Comment] Final validation check
+[Developer Comment] Store data temporarily and transition to MFA screen
+[Developer Comment] Mock verification: any code works, but we tell the user to use '123456' for testing
+[Developer Comment] Log the successful MFA authentication
+[Developer Comment] Session tracking: register a new active session
+[Developer Comment] Add current session details
+[Developer Comment] simulated IP
+[Developer Comment] Mark previous sessions as not current
+
+=================================
+
+=== CODE COMPONENT: src\pages\Signup\Signup.jsx ===
+Intelligent Security Monitoring Platform
+Gain enterprise-wide visibility across all security operations, incident queues, threat intelligence IOCs, vulnerabilities and compliance status in one unified dashboard.
+Create Account
+[Developer Comment] sentinelcore-9hxu.onrender.com";
+[Developer Comment] Default role
+[Developer Comment] Final validation check
+[Developer Comment] Track the registration action in the audit logs
+
+=================================
+
+=== CODE COMPONENT: src\components\Charts\SecurityChart.jsx ===
+Security Activity
+
+=================================
+
+=== CODE COMPONENT: src\components\Chatbot\Chatbot.jsx ===
+🛡️ Sentinel AI Analyst
+[Developer Comment] localhost:5005";
+[Developer Comment] Auto-scroll to bottom of chat when messages change
+[Developer Comment] Add user message
+[Developer Comment] Simple Markdown parser for rendering bold words, lists, blockquotes, and headers inside chat bubbles
+[Developer Comment] Close Icon
+[Developer Comment] Message Icon
+
+=================================
+
+=== CODE COMPONENT: src\components\DeviceTable\DeviceTable.jsx ===
+Device Table Working ✅
+
+=================================
+
+=== CODE COMPONENT: src\components\Header\Header.jsx ===
++ New Incident
+
+=================================
+
+=== CODE COMPONENT: src\components\RiskScore\RiskScore.jsx ===
+Organization Risk Score
+HIGH RISK
+Failed Login
+Phishing Emails
+Suspicious Files
+Locked Accounts
+
+=================================
+
+=== CODE COMPONENT: src\components\Sidebar\Sidebar.jsx ===
+v1.0.0-beta
+Operations
+Security
+Governance
+System
+[Developer Comment] Audit logout action
+
+=================================
+
+
+=== WEBSITE PAGE: SentinelCore Cybersecurity Platform Overview ===
+URL: https://sentinelcore-9hxu.onrender.com/dashboard/overview
+Description: General dashboard telemetry, statistics, network health, CPU/RAM utilization, and security score.
+
+## Platform Summary
+SentinelCore is an advanced, enterprise-grade Security Operations Center (SOC) dashboard and Security Information and Event Management (SIEM) system. It compiles real-time telemetry from distributed monitoring agents to secure network environments.
+
+## System Metrics
+- Average CPU Utilization: ~35.4%
+- Average RAM Utilization: ~62.1%
+- Average Disk Utilization: ~48.0%
+- Security Score: Computed dynamically based on active vulnerabilities and severity of unresolved incidents.
+- Network State: Tracks assets, detects online/offline hosts, monitors port scans, and manages security policies.
+
+
+=== WEBSITE PAGE: SentinelCore Asset Inventory & Host Security ===
+URL: https://sentinelcore-9hxu.onrender.com/dashboard/assets
+Description: Database of monitored assets, network interfaces, operating systems, and agent connections.
+
+## Asset Telemetry
+SentinelCore tracks all host devices connected to the enterprise network subnet (default subnet: 192.168.1.0/24).
+- Hostnames include:
+  * CORP-DC-01: Active Directory Domain Controller (Criticality: High, OS: Windows Server 2022)
+  * PROD-DB-01: Production Database Server (Criticality: Critical, OS: Linux Ubuntu 22.04 LTS)
+  * PROD-APP-01: Production Application Server (Criticality: High, OS: Linux RedHat)
+  * STG-WEB-02: Staging Web Server (Criticality: Medium, OS: Linux Ubuntu 20.04)
+  * DMZ-WAF-01: Web Application Firewall (Criticality: Critical, OS: Alpine Linux)
+- Agent Status: Hosts run the SentinelCore Security Agent. The agent monitors system logs, open ports, memory usage, running processes, and network sockets. If the agent stops reporting, the host status changes to Offline.
+
+
+=== WEBSITE PAGE: SentinelCore Vulnerability Management & CVEs ===
+URL: https://sentinelcore-9hxu.onrender.com/dashboard/vulnerabilities
+Description: Threat assessment engine tracking Common Vulnerabilities and Exposures (CVEs) on host assets.
+
+## Vulnerability Database (CVE Details)
+SentinelCore scans system packages and compares them against its threat library. The platform is currently tracking these active vulnerabilities:
+- **CVE-2026-01 (Severity: Critical - CVSS 9.8)**: Remote Code Execution (RCE) in Database Parser Engine affecting host PROD-DB-01.
+- **CVE-2026-03 (Severity: Critical - CVSS 9.0)**: Remote Command Execution in Web Application Firewall (WAF) admin dashboard affecting host DMZ-WAF-01.
+- **CVE-2025-44 (Severity: High - CVSS 8.5)**: Privilege Escalation bypass in Active Directory affecting host CORP-DC-01.
+- **CVE-2024-90 (Severity: High - CVSS 7.2)**: Deserialization of Untrusted Data in session management affecting host PROD-APP-01.
+- **CVE-2026-12 (Severity: Medium - CVSS 6.8)**: Improper access control on metrics endpoints affecting host PROD-APP-01.
+- **CVE-2025-18 (Severity: Medium - CVSS 5.4)**: Cross Site Scripting (XSS) in landing page form fields affecting host STG-WEB-02.
+- **CVE-2026-11 (Severity: Low - CVSS 2.1)**: SSL/TLS Weak Cipher Suites enabled affecting host CORP-DC-01.
+- **CVE-2025-05 (Severity: Low - CVSS 1.2)**: Server Version disclosure in HTTP response header affecting host STG-WEB-02.
+
+## Remediation Guide
+To patch these CVEs:
+1. Select the affected asset under the **Vulnerability Assessment** tab.
+2. Trigger the "Apply Official Security Patches" action.
+3. SentinelCore's agent will run an automated SOAR playbook to upgrade packages, restrict ports, or deploy WAF rules.
+
+
+=== WEBSITE PAGE: SentinelCore Security Playbooks & SOAR Automation ===
+URL: https://sentinelcore-9hxu.onrender.com/dashboard/playbooks
+Description: Security Orchestration, Automation, and Response (SOAR) playbooks.
+
+## Automated Playbooks
+SentinelCore provides automated response actions (SOAR playbooks) to isolate threats:
+1. **Isolate Compromised Host**: Disables the network interface of the target server to prevent lateral movement. Often triggered when a Critical alert (e.g. brute-force, reverse shell) is detected.
+2. **Block Offending IP on Firewall**: Adds a firewall drop rule on DMZ-WAF-01 to block malicious external IP addresses.
+3. **Terminate Rogue Process**: Kills unauthorized scripts, mining pools, or suspected malware processes.
+4. **Update Security Group Policies**: Enforces strict incoming rules on active assets.
+5. **Enforce Multi-Factor Authentication (MFA)**: Triggers a tenant-wide setting requiring all administrative users to log in with an MFA token.
+
+
+=== WEBSITE PAGE: SentinelCore SIEM Logs & Incident Triage ===
+URL: https://sentinelcore-9hxu.onrender.com/dashboard/siem
+Description: Log explorer, audit records, and security alert classification.
+
+## SIEM Alerts and Severity
+- **Critical (🔴)**: Immediate threat like active brute force attacks, SQL injections, or suspicious administrator logins.
+- **High (🟠)**: Port scans, failed SSH login attempts from internal nodes, or suspicious script executions.
+- **Medium (🟡)**: Unauthorized page access, service restarts, or minor configuration changes.
+- **Low (🔵)**: Regular audits, SSL configuration warnings, or general notifications.
