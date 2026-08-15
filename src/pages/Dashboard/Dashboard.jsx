@@ -4270,7 +4270,13 @@ function Dashboard() {
           </div>
         </div>
       )}
-      <Chatbot />
+      <Chatbot 
+        incidents={incidents} 
+        alerts={dbAlerts} 
+        threats={threats} 
+        assets={dbAssets} 
+        logs={logs} 
+      />
     </div>
   );
 }
