@@ -16,8 +16,8 @@ public class ChatbotController {
     private ChatbotService chatbotService;
 
     @PostMapping
-    public ResponseEntity<Map<String, String>> chat(@RequestBody Map<String, String> request) {
-        String message = request.get("message");
+    public ResponseEntity<Map<String, String>> chat(@RequestBody Map<String, Object> request) {
+        String message = (String) request.get("message");
         ChatbotResponse response = chatbotService.processQuery(message);
         return ResponseEntity.ok(Map.of(
             "reply", response.getReply(),
